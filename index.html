@@ -16,15 +16,20 @@
       body {
         width: 100%;
         min-width: 0;
-        height: 100%;
+        min-height: 100%;
         margin: 0;
       }
 
       body {
-        overflow: hidden;
+        overflow: auto;
         background:
           linear-gradient(135deg, rgba(15, 23, 42, 0.96), rgba(30, 41, 59, 0.94)),
           #0f172a;
+      }
+
+      body.gate-locked {
+        height: 100%;
+        overflow: hidden;
       }
 
       .gate {
@@ -119,7 +124,7 @@
       }
     </style>
   </head>
-  <body>
+  <body class="gate-locked">
     <main class="gate" id="gate">
       <section class="gate-card">
         <h1>访问验证</h1>
@@ -281,7 +286,7 @@
           mount.innerHTML = parsedDocument.body.innerHTML;
           gate.classList.add("is-hidden");
           loading.hidden = true;
-          document.body.style.overflow = "";
+          document.body.classList.remove("gate-locked");
           await appendScripts(parsedDocument, urls);
         }
 
