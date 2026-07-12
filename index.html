@@ -127,10 +127,10 @@
   <body class="gate-locked">
     <main class="gate" id="gate">
       <section class="gate-card">
-        <h1>访问验证</h1>
-        <p>请输入公司内部演示口令，验证通过后进入虚拟直播运营后台。</p>
+        <h1>直播间暗号</h1>
+        <p>机器人主播最怕直播间突然发生什么？答对后进入虚拟直播运营后台。</p>
         <form class="gate-form" id="gateForm">
-          <label for="gatePassword">演示口令</label>
+          <label for="gatePassword">答案</label>
           <input id="gatePassword" type="password" autocomplete="off" />
           <button id="gateButton" type="submit">进入后台</button>
           <p class="gate-message" id="gateMessage" aria-live="polite"></p>
@@ -306,7 +306,7 @@
             message.textContent =
               error.message === "payload_unavailable"
                 ? "演示资源暂时不可用，请稍后重试。"
-                : "口令不正确，请重新输入。";
+                : "答案不对，再想想机器人直播最怕什么。";
             loading.hidden = true;
           } finally {
             button.disabled = false;
