@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>虚拟直播运营后台演示</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: #0f172a;
+        color: #f8fafc;
+      }
+
+      html,
+      body {
+        width: 100%;
+        min-width: 0;
+        height: 100%;
+        margin: 0;
+      }
+
+      body {
+        overflow: hidden;
+        background:
+          linear-gradient(135deg, rgba(15, 23, 42, 0.96), rgba(30, 41, 59, 0.94)),
+          #0f172a;
+      }
+
+      .gate {
+        position: fixed;
+        inset: 0;
+        z-index: 10;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+      }
+
+      .gate.is-hidden {
+        display: none;
+      }
+
+      .gate-card {
+        width: min(430px, 100%);
+        padding: 28px;
+        border: 1px solid rgba(148, 163, 184, 0.3);
+        border-radius: 8px;
+        background: rgba(15, 23, 42, 0.84);
+        box-shadow: 0 24px 80px rgba(0, 0, 0, 0.34);
+      }
+
+      .gate-card h1 {
+        margin: 0 0 10px;
+        font-size: 22px;
+        font-weight: 700;
+        letter-spacing: 0;
+      }
+
+      .gate-card p {
+        margin: 0 0 20px;
+        color: #cbd5e1;
+        font-size: 14px;
+        line-height: 1.6;
+      }
+
+      .gate-form {
+        display: grid;
+        gap: 12px;
+      }
+
+      .gate-form label {
+        color: #e2e8f0;
+        font-size: 13px;
+        font-weight: 600;
+      }
+
+      .gate-form input {
+        width: 100%;
+        box-sizing: border-box;
+        height: 42px;
+        padding: 0 12px;
+        border: 1px solid rgba(148, 163, 184, 0.5);
+        border-radius: 6px;
+        outline: none;
+        background: #f8fafc;
+        color: #0f172a;
+        font-size: 15px;
+      }
+
+      .gate-form input:focus {
+        border-color: #38bdf8;
+        box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.18);
+      }
+
+      .gate-form button {
+        height: 42px;
+        border: 0;
+        border-radius: 6px;
+        background: #38bdf8;
+        color: #082f49;
+        cursor: pointer;
+        font-size: 15px;
+        font-weight: 700;
+      }
+
+      .gate-form button:hover {
+        background: #7dd3fc;
+      }
+
+      .gate-message {
+        min-height: 18px;
+        margin: 0;
+        color: #fca5a5;
+        font-size: 13px;
+      }
+
+      .loading {
+        color: #cbd5e1;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="gate" id="gate">
+      <section class="gate-card">
+        <h1>访问验证</h1>
+        <p>请输入公司内部演示口令，验证通过后进入虚拟直播运营后台。</p>
+        <form class="gate-form" id="gateForm">
+          <label for="gatePassword">演示口令</label>
+          <input id="gatePassword" type="password" autocomplete="off" />
+          <button id="gateButton" type="submit">进入后台</button>
+          <p class="gate-message" id="gateMessage" aria-live="polite"></p>
+        </form>
+      </section>
+    </main>
+    <div class="loading" id="loading" hidden>正在加载演示后台...</div>
+    <div id="appMount"></div>
+
+    <script>
+      (() => {
+        const sessionKey = "liveOpsEncryptedBundle";
+        const payloadUrl = "./payload.json";
+        const textDecoder = new TextDecoder();
+        const gate = document.getElementById("gate");
+        const form = document.getElementById("gateForm");
+        const input = document.getElementById("gatePassword");
+        const button = document.getElementById("gateButton");
+        const message = document.getElementById("gateMessage");
+        const loading = document.getElementById("loading");
+        const mount = document.getElementById("appMount");
+
+        function bytesFromBase64(value) {
+          const binary = atob(value);
+          const bytes = new Uint8Array(binary.length);
+          for (let index = 0; index < binary.length; index += 1) {
+            bytes[index] = binary.charCodeAt(index);
+          }
+          return bytes;
+        }
+
+        function bytesToText(value) {
+          return textDecoder.decode(bytesFromBase64(value));
+        }
+
+        function normalizePath(value) {
+          return value
+            .split("?")[0]
+            .replace(/^\.\//, "")
+            .replace(/^\/+/, "");
+        }
+
+        async function deriveKey(password, salt, iterations) {
+          const baseKey = await crypto.subtle.importKey(
+            "raw",
+            new TextEncoder().encode(password),
+            "PBKDF2",
+            false,
+            ["deriveKey"],
+          );
+
+          return crypto.subtle.deriveKey(
+            {
+              name: "PBKDF2",
+              salt,
+              iterations,
+              hash: "SHA-256",
+            },
+            baseKey,
+            { name: "AES-GCM", length: 256 },
+            false,
+            ["decrypt"],
+          );
+        }
+
+        async function decryptBundle(password) {
+          const response = await fetch(payloadUrl, { cache: "no-store" });
+          if (!response.ok) {
+            throw new Error("payload_unavailable");
+          }
+
+          const payload = await response.json();
+          const key = await deriveKey(
+            password.trim(),
+            bytesFromBase64(payload.salt),
+            payload.iterations,
+          );
+          const decrypted = await crypto.subtle.decrypt(
+            {
+              name: "AES-GCM",
+              iv: bytesFromBase64(payload.iv),
+            },
+            key,
+            bytesFromBase64(payload.data),
+          );
+
+          return textDecoder.decode(new Uint8Array(decrypted));
+        }
+
+        function createFileUrls(bundle) {
+          const urls = {};
+
+          for (const [path, file] of Object.entries(bundle.files)) {
+            if (path.endsWith(".js")) continue;
+            urls[path] = URL.createObjectURL(
+              new Blob([bytesFromBase64(file.content)], { type: file.mime }),
+            );
+          }
+
+          for (const [path, file] of Object.entries(bundle.files)) {
+            if (!path.endsWith(".js")) continue;
+            let source = bytesToText(file.content);
+            for (const [assetPath, assetUrl] of Object.entries(urls)) {
+              source = source.replaceAll(`./${assetPath}`, assetUrl);
+              source = source.replaceAll(assetPath, assetUrl);
+            }
+            urls[path] = URL.createObjectURL(
+              new Blob([source], { type: file.mime }),
+            );
+          }
+
+          return urls;
+        }
+
+        function appendStyles(parsedDocument, urls) {
+          for (const node of parsedDocument.querySelectorAll("link[rel='stylesheet'][href]")) {
+            const path = normalizePath(node.getAttribute("href"));
+            const href = urls[path];
+            if (!href) continue;
+            const link = document.createElement("link");
+            link.rel = "stylesheet";
+            link.href = href;
+            document.head.appendChild(link);
+          }
+        }
+
+        function loadScript(src) {
+          return new Promise((resolve, reject) => {
+            const script = document.createElement("script");
+            script.src = src;
+            script.onload = resolve;
+            script.onerror = reject;
+            document.body.appendChild(script);
+          });
+        }
+
+        async function appendScripts(parsedDocument, urls) {
+          for (const node of parsedDocument.querySelectorAll("script[src]")) {
+            const path = normalizePath(node.getAttribute("src"));
+            const src = urls[path];
+            if (!src) continue;
+            await loadScript(src);
+          }
+        }
+
+        async function hydrate(bundleText) {
+          const bundle = JSON.parse(bundleText);
+          const urls = createFileUrls(bundle);
+          const html = bytesToText(bundle.files["index.html"].content);
+          const parsedDocument = new DOMParser().parseFromString(html, "text/html");
+
+          appendStyles(parsedDocument, urls);
+          mount.innerHTML = parsedDocument.body.innerHTML;
+          gate.classList.add("is-hidden");
+          loading.hidden = true;
+          document.body.style.overflow = "";
+          await appendScripts(parsedDocument, urls);
+        }
+
+        async function unlockWith(password) {
+          button.disabled = true;
+          message.textContent = "";
+          loading.hidden = false;
+
+          try {
+            const bundleText = await decryptBundle(password);
+            sessionStorage.setItem(sessionKey, bundleText);
+            await hydrate(bundleText);
+          } catch (error) {
+            sessionStorage.removeItem(sessionKey);
+            input.value = "";
+            input.focus();
+            message.textContent =
+              error.message === "payload_unavailable"
+                ? "演示资源暂时不可用，请稍后重试。"
+                : "口令不正确，请重新输入。";
+            loading.hidden = true;
+          } finally {
+            button.disabled = false;
+          }
+        }
+
+        window.addEventListener("DOMContentLoaded", async () => {
+          const cachedBundle = sessionStorage.getItem(sessionKey);
+          if (cachedBundle) {
+            await hydrate(cachedBundle);
+            return;
+          }
+          input.focus();
+        });
+
+        form.addEventListener("submit", (event) => {
+          event.preventDefault();
+          unlockWith(input.value);
+        });
+      })();
+    </script>
+  </body>
+</html>
