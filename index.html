@@ -112,6 +112,35 @@
         background: #7dd3fc;
       }
 
+      .answer-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .answer-option {
+        min-height: 42px;
+        border: 1px solid rgba(148, 163, 184, 0.55);
+        border-radius: 6px;
+        background: rgba(248, 250, 252, 0.96);
+        color: #0f172a;
+        cursor: pointer;
+        font-size: 15px;
+        font-weight: 700;
+      }
+
+      .answer-option:hover,
+      .answer-option:focus {
+        border-color: #38bdf8;
+        background: #e0f2fe;
+        outline: none;
+      }
+
+      .answer-option:disabled {
+        cursor: wait;
+        opacity: 0.6;
+      }
+
       .gate-message {
         min-height: 18px;
         margin: 0;
@@ -130,9 +159,13 @@
         <h1>直播间暗号</h1>
         <p>机器人主播最怕直播间突然发生什么？答对后进入虚拟直播运营后台。</p>
         <form class="gate-form" id="gateForm">
-          <label for="gatePassword">答案</label>
-          <input id="gatePassword" type="password" autocomplete="off" />
-          <button id="gateButton" type="submit">进入后台</button>
+          <label>选择答案</label>
+          <div class="answer-grid" id="answerGrid">
+            <button class="answer-option" type="button" data-answer="停电">停电</button>
+            <button class="answer-option" type="button" data-answer="断网">断网</button>
+            <button class="answer-option" type="button" data-answer="忘词">忘词</button>
+            <button class="answer-option" type="button" data-answer="没电">没电</button>
+          </div>
           <p class="gate-message" id="gateMessage" aria-live="polite"></p>
         </form>
       </section>
@@ -147,8 +180,8 @@
         const textDecoder = new TextDecoder();
         const gate = document.getElementById("gate");
         const form = document.getElementById("gateForm");
-        const input = document.getElementById("gatePassword");
-        const button = document.getElementById("gateButton");
+        const answerGrid = document.getElementById("answerGrid");
+        const answerButtons = Array.from(document.querySelectorAll(".answer-option"));
         const message = document.getElementById("gateMessage");
         const loading = document.getElementById("loading");
         const mount = document.getElementById("appMount");
@@ -291,7 +324,9 @@
         }
 
         async function unlockWith(password) {
-          button.disabled = true;
+          answerButtons.forEach((button) => {
+            button.disabled = true;
+          });
           message.textContent = "";
           loading.hidden = false;
 
@@ -301,15 +336,15 @@
             await hydrate(bundleText);
           } catch (error) {
             sessionStorage.removeItem(sessionKey);
-            input.value = "";
-            input.focus();
             message.textContent =
               error.message === "payload_unavailable"
                 ? "演示资源暂时不可用，请稍后重试。"
                 : "答案不对，再想想机器人直播最怕什么。";
             loading.hidden = true;
           } finally {
-            button.disabled = false;
+            answerButtons.forEach((button) => {
+              button.disabled = false;
+            });
           }
         }
 
@@ -319,12 +354,17 @@
             await hydrate(cachedBundle);
             return;
           }
-          input.focus();
+          answerButtons[0]?.focus();
         });
 
         form.addEventListener("submit", (event) => {
           event.preventDefault();
-          unlockWith(input.value);
+        });
+
+        answerGrid.addEventListener("click", (event) => {
+          const option = event.target.closest("[data-answer]");
+          if (!option) return;
+          unlockWith(option.dataset.answer);
         });
       })();
     </script>
