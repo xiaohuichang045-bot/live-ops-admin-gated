@@ -85,6 +85,7 @@ const handoffAnnotationProjectUrl = "handoff-annotations.json";
 const handoffAnnotationStorageKey = "liveAdminHandoffAnnotations";
 const handoffAnnotationProjectCacheKey = "liveAdminHandoffProjectAnnotations";
 const handoffPanelPositionStorageKey = "liveAdminHandoffPanelPosition";
+if (typeof window !== "undefined") window.localStorage?.removeItem(handoffPanelPositionStorageKey);
 let handoffProjectAnnotations = initialHandoffProjectAnnotations();
 let handoffLocalAnnotations = initialHandoffAnnotations();
 let handoffAnnotations = mergeHandoffAnnotationSources();
@@ -148,8 +149,8 @@ const archivedHandoffAnnotationKeys = new Set([
 ]);
 let handoffPlacementMode = false;
 let handoffPlacementScope = "auto";
-let handoffFloatingPanelPosition = initialHandoffPanelPosition();
-let handoffFloatingPanelDrag = null;
+let handoffPanelOpen = false;
+let handoffAdvancedOpen = false;
 let activeHandoffKey = "";
 let handoffVisibleAnnotations = [];
 let handoffSummaryCapturePage = "";
@@ -905,11 +906,6 @@ function renderApp() {
   activePage = safePageKey(activePage);
   document.body.classList.toggle("handoff-enabled", handoffMode);
   document.getElementById("app").classList.toggle("handoff-enabled", handoffMode);
-  const handoffToggle = document.getElementById("handoffToggle");
-  if (handoffToggle) {
-    handoffToggle.classList.toggle("active", handoffMode);
-    handoffToggle.textContent = handoffMode ? "隐藏标注" : "交付标注";
-  }
   renderSideNav();
   renderTabs();
   document.getElementById("breadcrumbModule").textContent = currentPage().group || "虚拟直播管理";
@@ -921,7 +917,6 @@ function renderApp() {
   content.innerHTML = `${renderHandoffManagerBar()}${renderChannelAccessBanner()}${renderPage()}`;
   if (activePage === "live-dashboard" && typeof mountLiveDashboard === "function") mountLiveDashboard();
   mountPlacedHandoffAnnotations();
-  syncBusinessModalHandoffToggle();
 }
 
 const customerResourceIds = {
@@ -1349,32 +1344,8 @@ function initialHandoffMode() {
   return window.localStorage?.getItem("handoffMode") === "1";
 }
 
-function initialHandoffPanelPosition() {
-  if (typeof window === "undefined") return null;
-  try {
-    const saved = window.localStorage?.getItem(handoffPanelPositionStorageKey);
-    if (!saved) return null;
-    const parsed = JSON.parse(saved);
-    const left = Number(parsed.left);
-    const top = Number(parsed.top);
-    if (Number.isFinite(left) && Number.isFinite(top)) return { left, top };
-  } catch {
-    window.localStorage?.removeItem(handoffPanelPositionStorageKey);
-  }
-  return null;
-}
-
-function saveHandoffPanelPosition() {
-  if (typeof window === "undefined") return;
-  if (!handoffFloatingPanelPosition) {
-    window.localStorage?.removeItem(handoffPanelPositionStorageKey);
-    return;
-  }
-  window.localStorage?.setItem(handoffPanelPositionStorageKey, JSON.stringify(handoffFloatingPanelPosition));
-}
-
-function toggleHandoffMode() {
-  handoffMode = !handoffMode;
+function setHandoffMode(nextMode) {
+  handoffMode = Boolean(nextMode);
   if (!handoffMode) {
     activeHandoffKey = "";
     stopHandoffPlacement();
@@ -1382,6 +1353,27 @@ function toggleHandoffMode() {
   }
   if (typeof window !== "undefined") window.localStorage?.setItem("handoffMode", handoffMode ? "1" : "0");
   renderApp();
+}
+
+function toggleHandoffMode() {
+  setHandoffMode(!handoffMode);
+}
+
+function toggleHandoffPanel() {
+  handoffPanelOpen = !handoffPanelOpen;
+  if (!handoffPanelOpen) handoffAdvancedOpen = false;
+  mountPlacedHandoffAnnotations();
+}
+
+function closeHandoffPanel() {
+  handoffPanelOpen = false;
+  handoffAdvancedOpen = false;
+  mountPlacedHandoffAnnotations();
+}
+
+function toggleHandoffAdvanced() {
+  handoffAdvancedOpen = !handoffAdvancedOpen;
+  mountPlacedHandoffAnnotations();
 }
 
 function initialHandoffAnnotations() {
@@ -1843,11 +1835,17 @@ function renderCustomHandoffAnnotation(item) {
 }
 
 function startHandoffPlacement(scope = "auto") {
+  if (!handoffMode) {
+    handoffMode = true;
+    if (typeof window !== "undefined") window.localStorage?.setItem("handoffMode", "1");
+  }
+  handoffPanelOpen = false;
+  handoffAdvancedOpen = false;
   handoffPlacementMode = true;
   handoffPlacementScope = scope;
   document.body?.classList.add("handoff-placing");
+  renderApp();
   toast(scope === "modal" ? "点击弹层中要添加标注的位置" : "点击页面或弹层中要添加标注的位置");
-  mountPlacedHandoffAnnotations();
 }
 
 function stopHandoffPlacement() {
@@ -1858,7 +1856,7 @@ function stopHandoffPlacement() {
 
 function handleHandoffPlacementClick(event) {
   if (!handoffMode || !handoffPlacementMode) return;
-  if (event.target.closest("#handoffModalRoot, #handoffOverlayRoot, .handoff-floating-panel, .handoff-overlay-badge")) return;
+  if (event.target.closest("#handoffModalRoot, #handoffOverlayRoot, .handoff-fab-control, .handoff-overlay-badge")) return;
 
   const modalRoot = document.querySelector("#modalRoot .modal");
   const pageRoot = document.getElementById("content");
@@ -1901,15 +1899,16 @@ function mountPlacedHandoffAnnotations() {
   const root = ensureHandoffOverlayRoot();
   if (!root) return;
   root.innerHTML = "";
-  if (!handoffMode) return;
+  const panel = renderHandoffFloatingPanel();
+  root.appendChild(panel);
+  if (!handoffMode) {
+    handoffVisibleAnnotations = [];
+    return;
+  }
   handoffVisibleAnnotations = collectVisibleHandoffAnnotations();
   if (activeHandoffKey && !handoffVisibleAnnotations.some((record) => record.item.key === activeHandoffKey)) {
     activeHandoffKey = "";
   }
-
-  const panel = renderHandoffFloatingPanel();
-  root.appendChild(panel);
-  positionHandoffFloatingPanel(panel);
   const avoidRects = handoffAvoidRects(panel, handoffVisibleAnnotations);
   const placedRects = [];
   handoffVisibleAnnotations
@@ -1935,19 +1934,41 @@ function ensureHandoffOverlayRoot() {
 
 function renderHandoffFloatingPanel() {
   const panel = document.createElement("div");
-  panel.className = "handoff-floating-panel";
+  const count = handoffMode ? handoffVisibleAnnotations.length : 0;
+  const listLabel = handoffMode ? "查看当前页标注" : "显示并查看当前页标注";
+  panel.className = `handoff-fab-control ${handoffPanelOpen ? "open" : ""} ${handoffMode ? "annotations-visible" : ""} ${handoffPlacementMode ? "placing" : ""}`;
   panel.innerHTML = `
-    <div class="handoff-compact-actions">
-      <button class="handoff-panel-drag-handle" type="button" title="拖拽移动" aria-label="拖拽移动" onpointerdown="startHandoffPanelDrag(event)">⋮⋮</button>
-      <button class="btn secondary small" type="button" onclick="openHandoffPanel()">列表</button>
-      <button class="btn secondary small ${handoffPlacementMode ? "active" : ""}" type="button" onclick="startHandoffPlacement('auto')">定位新增</button>
-      <button class="btn secondary small" type="button" onclick="persistHandoffAnnotationsJson()">固化全部标注</button>
-      <button class="btn secondary small" type="button" onclick="triggerHandoffAnnotationImport()">导入JSON</button>
-      <button class="btn secondary small" type="button" onclick="resetHandoffAnnotations()">恢复项目标注</button>
-    </div>
-    ${handoffPlacementMode ? '<div class="handoff-placement-tip">定位中，点击目标位置</div>' : ""}
+    <button class="handoff-fab" type="button" title="交付标注" aria-label="交付标注" aria-expanded="${handoffPanelOpen}" aria-controls="handoffFabPanel" onclick="toggleHandoffPanel()">
+      <span aria-hidden="true">标</span>
+      ${handoffMode && count ? `<b class="handoff-fab-count">${count > 99 ? "99+" : count}</b>` : ""}
+    </button>
+    <section id="handoffFabPanel" class="handoff-floating-panel" aria-label="交付标注工具">
+      <header class="handoff-fab-head">
+        <div><strong>交付标注</strong><span>${handoffMode ? `当前页 ${count} 条` : "标注已隐藏"}</span></div>
+        <button class="handoff-fab-close" type="button" aria-label="关闭交付标注面板" onclick="closeHandoffPanel()">×</button>
+      </header>
+      <button class="handoff-fab-switch ${handoffMode ? "active" : ""}" type="button" role="switch" aria-checked="${handoffMode}" onclick="toggleHandoffMode()">
+        <span>显示本页标注</span><i aria-hidden="true"></i>
+      </button>
+      <div class="handoff-fab-actions">
+        <button class="handoff-fab-action" type="button" onclick="openHandoffPanelFromFab()">${listLabel}</button>
+        <button class="handoff-fab-action ${handoffPlacementMode ? "active" : ""}" type="button" onclick="startHandoffPlacement('auto')">定位新增</button>
+      </div>
+      <div class="handoff-fab-more">
+        <button class="handoff-fab-more-toggle" type="button" aria-expanded="${handoffAdvancedOpen}" onclick="toggleHandoffAdvanced()">更多管理 <span aria-hidden="true">${handoffAdvancedOpen ? "⌃" : "⌄"}</span></button>
+        ${handoffAdvancedOpen ? `<div class="handoff-fab-more-actions"><button type="button" onclick="persistHandoffAnnotationsJson()">固化全部标注</button><button type="button" onclick="triggerHandoffAnnotationImport()">导入 JSON</button><button class="danger" type="button" onclick="confirmResetHandoffAnnotations()">恢复项目标注</button></div>` : ""}
+      </div>
+    </section>
   `;
   return panel;
+}
+
+function openHandoffPanelFromFab() {
+  handoffPanelOpen = false;
+  if (!handoffMode) {
+    setHandoffMode(true);
+  }
+  openHandoffPanel();
 }
 
 function renderHandoffPanelListItem(record) {
@@ -2190,7 +2211,7 @@ function handoffAvoidRects(panel, records = []) {
     ".mini-tag",
   ].join(", ");
   const scopedAvoidElements = scopes.flatMap((scope) => Array.from(scope.root.querySelectorAll(`${controlSelector}, ${contentSelector}`)));
-  const items = [panel, ...document.querySelectorAll("#handoffModalRoot .modal, #modalRoot .modal-header, #modalRoot .modal-footer"), ...scopedAvoidElements];
+  const items = [panel, ...(panel.querySelectorAll?.(".handoff-floating-panel") || []), ...document.querySelectorAll("#handoffModalRoot .modal, #modalRoot .modal-header, #modalRoot .modal-footer"), ...scopedAvoidElements];
   const rects = items
     .map((node) => handoffElementPreciseRect(node))
     .filter((rect) => rect && isHandoffRectVisible(rect))
@@ -2270,71 +2291,6 @@ function clampHandoffPinPosition(left, top) {
     left: Math.min(Math.max(left, margin), window.innerWidth - size - margin),
     top: Math.min(Math.max(top, margin), window.innerHeight - size - margin),
   };
-}
-
-function positionHandoffFloatingPanel(panel) {
-  if (!panel || !handoffFloatingPanelPosition) return;
-  const next = clampHandoffPanelPosition(handoffFloatingPanelPosition, panel);
-  handoffFloatingPanelPosition = next;
-  panel.style.left = `${next.left}px`;
-  panel.style.top = `${next.top}px`;
-  panel.style.right = "auto";
-  panel.style.bottom = "auto";
-  saveHandoffPanelPosition();
-}
-
-function clampHandoffPanelPosition(position, panel = document.querySelector(".handoff-floating-panel")) {
-  const margin = 8;
-  const rect = panel?.getBoundingClientRect?.();
-  const width = rect?.width || 260;
-  const height = rect?.height || 58;
-  return {
-    left: Math.min(Math.max(position.left, margin), Math.max(margin, window.innerWidth - width - margin)),
-    top: Math.min(Math.max(position.top, margin), Math.max(margin, window.innerHeight - height - margin)),
-  };
-}
-
-function startHandoffPanelDrag(event) {
-  if (event.button !== undefined && event.button !== 0) return;
-  const panel = event.currentTarget.closest(".handoff-floating-panel");
-  if (!panel) return;
-  const rect = panel.getBoundingClientRect();
-  handoffFloatingPanelDrag = {
-    offsetX: event.clientX - rect.left,
-    offsetY: event.clientY - rect.top,
-  };
-  panel.classList.add("dragging");
-  document.body?.classList.add("handoff-panel-dragging");
-  event.currentTarget.setPointerCapture?.(event.pointerId);
-  event.preventDefault();
-  event.stopPropagation();
-}
-
-function handleHandoffPanelDrag(event) {
-  if (!handoffFloatingPanelDrag) return;
-  const panel = document.querySelector(".handoff-floating-panel");
-  if (!panel) return;
-  const next = clampHandoffPanelPosition(
-    {
-      left: event.clientX - handoffFloatingPanelDrag.offsetX,
-      top: event.clientY - handoffFloatingPanelDrag.offsetY,
-    },
-    panel,
-  );
-  handoffFloatingPanelPosition = next;
-  panel.style.left = `${next.left}px`;
-  panel.style.top = `${next.top}px`;
-  panel.style.right = "auto";
-  panel.style.bottom = "auto";
-  event.preventDefault();
-}
-
-function stopHandoffPanelDrag() {
-  if (!handoffFloatingPanelDrag) return;
-  handoffFloatingPanelDrag = null;
-  document.querySelector(".handoff-floating-panel")?.classList.remove("dragging");
-  document.body?.classList.remove("handoff-panel-dragging");
-  saveHandoffPanelPosition();
 }
 
 function isHandoffPinPositionFree(position, placedRects, avoidRects) {
@@ -2574,8 +2530,7 @@ function returnToChangelogTimeline() {
 }
 
 function enableHandoffAnnotations() {
-  handoffMode = true;
-  renderApp();
+  setHandoffMode(true);
 }
 
 function filteredPhase2FeatureRows() {
@@ -3038,6 +2993,11 @@ function resetHandoffAnnotations() {
   closeHandoffModal();
   renderApp();
   toast("已清空本地草稿，恢复项目标注");
+}
+
+function confirmResetHandoffAnnotations() {
+  if (!window.confirm("恢复项目标注会清空本机新增、编辑和删除的标注草稿，是否继续？")) return;
+  resetHandoffAnnotations();
 }
 
 function formatLocalTimestamp(date = new Date()) {
@@ -9888,7 +9848,6 @@ function typeClass(type) {
 
 function openModal(html) {
   document.getElementById("modalRoot").innerHTML = `<div class="modal-backdrop ${handoffMode ? "handoff-enabled" : ""}">${html}</div>`;
-  syncBusinessModalHandoffToggle();
   mountPlacedHandoffAnnotations();
 }
 
@@ -9896,29 +9855,6 @@ function closeModal() {
   document.getElementById("modalRoot").innerHTML = "";
   if (handoffPlacementMode) stopHandoffPlacement();
   mountPlacedHandoffAnnotations();
-}
-
-function syncBusinessModalHandoffToggle() {
-  const backdrop = document.querySelector("#modalRoot .modal-backdrop");
-  const modal = document.querySelector("#modalRoot .modal");
-  const header = modal?.querySelector(".modal-header");
-  backdrop?.classList.toggle("handoff-enabled", handoffMode);
-  if (!header) return;
-
-  let button = header.querySelector(".modal-handoff-toggle");
-  if (!button) {
-    button = document.createElement("button");
-    button.className = "btn secondary small modal-handoff-toggle";
-    button.type = "button";
-    button.addEventListener("click", (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-      toggleHandoffMode();
-    });
-    const closeButton = header.querySelector(".modal-close");
-    header.insertBefore(button, closeButton || null);
-  }
-  button.textContent = handoffMode ? "隐藏标注" : "显示标注";
 }
 
 function openHandoffModal(html) {
@@ -9941,21 +9877,16 @@ function toast(message) {
 
 if (typeof document !== "undefined") {
   document.addEventListener("click", handleHandoffPlacementClick, true);
-  document.addEventListener("pointermove", handleHandoffPanelDrag);
-  document.addEventListener("pointerup", stopHandoffPanelDrag);
-  document.addEventListener("pointercancel", stopHandoffPanelDrag);
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape" && handoffPlacementMode) {
       stopHandoffPlacement();
       toast("已取消定位新增");
+      return;
     }
+    if (event.key === "Escape" && handoffPanelOpen) closeHandoffPanel();
   });
   window.addEventListener("resize", () => {
-    if (handoffFloatingPanelPosition) {
-      handoffFloatingPanelPosition = clampHandoffPanelPosition(handoffFloatingPanelPosition);
-      saveHandoffPanelPosition();
-    }
-    if (handoffMode) mountPlacedHandoffAnnotations();
+    mountPlacedHandoffAnnotations();
   });
   window.addEventListener("hashchange", () => {
     const hash = window.location.hash.replace("#", "");
