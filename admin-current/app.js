@@ -159,6 +159,8 @@ const businessStateVersion = 3;
 let featureListRows = initialFeatureListRows();
 let featureListFilters = { keyword: "", client: "全部端", module1: "全部模块", phase: "全部阶段", priority: "全部优先级" };
 let changelogView = "timeline";
+let changelogStatusFilter = "全部版本";
+let phase2FeatureModuleFilter = "全部模块";
 let prototypePreviewVersionId = "";
 const paginationState = {};
 const phase2FeatureRows = [
@@ -2451,17 +2453,47 @@ function renderChangelogPage() {
   if (changelogView === "legacy") return renderLegacyFeatureListPage();
   if (changelogView === "prototype-preview") return renderPrototypeVersionPreviewPage();
   const versions = prototypeVersions();
+  const visibleVersions = filteredPrototypeVersions(versions);
+  const stats = changelogStats(versions);
   return `
     <div class="changelog-page">
-      <section class="changelog-head"><div><h1>更新日志</h1><p>按版本时间线展示，支持查看功能清单，也可以打开该版本完整原型和对应标注。</p></div></section>
+      <section class="changelog-head changelog-hero">
+        <div>
+          <span class="changelog-kicker">版本交付中心</span>
+          <h1>更新日志</h1>
+          <p>按版本时间线展示交付范围，支持查看功能清单、打开该版本完整原型，并一键进入交付标注检查。</p>
+        </div>
+        <div class="changelog-actions">
+          <button class="btn secondary" type="button" onclick="enableHandoffAnnotations()">开启交付标注</button>
+          <button class="btn" type="button" onclick="openChangelogFeatureList('phase2')">查看当前功能清单</button>
+        </div>
+      </section>
+      <section class="feature-summary-grid changelog-overview">
+        ${summaryCard("版本数量", stats.totalVersions, "blue")}
+        ${summaryCard("当前版本", stats.currentTitle, "green")}
+        ${summaryCard("当前功能点", stats.currentFeatureCount, "red")}
+        ${summaryCard("交付标注", stats.annotationCount, "gray")}
+      </section>
+      <section class="changelog-toolbar">
+        <div>
+          <strong>版本时间线</strong>
+          <span>${visibleVersions.length} / ${versions.length} 个版本</span>
+        </div>
+        <div class="changelog-status-tabs">
+          ${["全部版本", "当前版本", "已发布"].map((status) => `<button class="${changelogStatusFilter === status ? "active" : ""}" type="button" onclick="setChangelogStatusFilter('${status}')">${status}</button>`).join("")}
+        </div>
+      </section>
       <div class="release-timeline">
-        ${versions.map(renderPrototypeVersionCard).join("")}
+        ${visibleVersions.length ? visibleVersions.map(renderPrototypeVersionCard).join("") : `<div class="empty-state">当前筛选下暂无版本记录</div>`}
       </div>
     </div>`;
 }
 
 function renderPrototypeVersionCard(version) {
   const mark = version.id === "v2.0" ? handoffMark("二期开发标注总览", "本次交付标注按二期优化核心需求重排，聚焦直播异常兜底、脚本编辑与预览、机器人脚本管理、机器人运维大屏、渠道隔离与平台下发。", "info") : "";
+  const featureCount = version.featureView === "phase2" ? phase2FeatureRows.length : featureListRows.length;
+  const focusCount = version.featureView === "phase2" ? phase2FeatureRows.filter((row) => row.focus).length : featureListRows.filter((row) => row.priority === "高").length;
+  const actionLabel = version.current ? "当前开发版" : "历史发布版";
   const summaryMarkup = version.summaryItems.length > 1
     ? `<ul>${version.summaryItems.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>`
     : `<p>${escapeHtml(version.summaryItems[0] || "")}</p>`;
@@ -2469,17 +2501,47 @@ function renderPrototypeVersionCard(version) {
     <article class="release-card ${version.current ? "current" : ""}">
       <div class="release-dot"></div>
       <div>
-        <div class="release-meta"><strong>${escapeHtml(version.title)}${mark}</strong><span>${escapeHtml(version.date)}</span><em class="${escapeHtml(version.statusClass)}">${escapeHtml(version.status)}</em></div>
+        <div class="release-card-head">
+          <div class="release-meta"><strong>${escapeHtml(version.title)}${mark}</strong><span>${escapeHtml(version.date)}</span><em class="${escapeHtml(version.statusClass)}">${escapeHtml(version.status)}</em></div>
+          <span class="mini-tag ${version.current ? "blue" : "green"}">${actionLabel}</span>
+        </div>
         <h2>${escapeHtml(version.headline)}</h2>
+        <div class="release-stats">
+          <span><b>${featureCount}</b> 功能点</span>
+          <span><b>${focusCount}</b> 重点项</span>
+          <span><b>${version.featureView === "phase2" ? phase2FocusRows.length : 1}</b> 交付主线</span>
+        </div>
         <div class="release-summary"><strong>更新摘要</strong>${summaryMarkup}</div>
         <p>${escapeHtml(version.detail)}</p>
         <p class="release-annotation-source">标注文件：${escapeHtml(version.annotationSource)}</p>
         <div class="release-actions">
           <button class="btn" type="button" onclick="openChangelogFeatureList('${escapeHtml(version.featureView)}')">查看功能清单</button>
           <button class="btn secondary" type="button" onclick="openPrototypeVersion('${escapeHtml(version.id)}')">查看该版本原型</button>
+          <button class="btn ghost" type="button" onclick="enableHandoffAnnotations()">开启交付标注</button>
         </div>
       </div>
     </article>`;
+}
+
+function changelogStats(versions) {
+  const current = versions.find((version) => version.current) || versions[0] || {};
+  return {
+    totalVersions: versions.length,
+    currentTitle: current.id ? current.id.toUpperCase() : "-",
+    currentFeatureCount: current.featureView === "phase2" ? phase2FeatureRows.length : featureListRows.length,
+    annotationCount: Object.keys(handoffAnnotations).length,
+  };
+}
+
+function filteredPrototypeVersions(versions) {
+  if (changelogStatusFilter === "当前版本") return versions.filter((version) => version.current);
+  if (changelogStatusFilter === "已发布") return versions.filter((version) => version.status === "已发布");
+  return versions;
+}
+
+function setChangelogStatusFilter(status) {
+  changelogStatusFilter = status;
+  renderApp();
 }
 
 function openChangelogFeatureList(view) {
@@ -2494,13 +2556,29 @@ function openPrototypeVersion(versionId) {
   renderApp();
 }
 
+function returnToChangelogTimeline() {
+  changelogView = "timeline";
+  prototypePreviewVersionId = "";
+  renderApp();
+}
+
+function enableHandoffAnnotations() {
+  handoffMode = true;
+  renderApp();
+}
+
+function setPhase2FeatureModuleFilter(moduleName) {
+  phase2FeatureModuleFilter = moduleName;
+  renderApp();
+}
+
 function renderPrototypeVersionPreviewPage() {
   const version = prototypeVersions().find((item) => item.id === prototypePreviewVersionId) || prototypeVersions()[0];
   return `
     <div class="changelog-page prototype-preview-page">
       <section class="changelog-head prototype-preview-head">
         <div>
-          <button class="link" onclick="changelogView='timeline';prototypePreviewVersionId='';renderApp()">← 返回版本时间线</button>
+          <button class="btn secondary compact" type="button" onclick="returnToChangelogTimeline()">← 返回更新日志</button>
           <h1>${escapeHtml(version.title)} 原型预览</h1>
           <p>${escapeHtml(version.date)} · ${escapeHtml(version.status)} · 默认打开交付标注，标注来自 ${escapeHtml(version.annotationSource)}。</p>
         </div>
@@ -2515,10 +2593,41 @@ function renderPrototypeVersionPreviewPage() {
 }
 
 function renderPhase2FeatureListPage() {
-  const modules = new Set(phase2FeatureRows.map((row) => row.module)).size;
+  const moduleOptions = ["全部模块", ...Array.from(new Set(phase2FeatureRows.map((row) => row.module)))];
+  const rows = phase2FeatureModuleFilter === "全部模块" ? phase2FeatureRows : phase2FeatureRows.filter((row) => row.module === phase2FeatureModuleFilter);
+  const modules = moduleOptions.length - 1;
   const focusCount = phase2FeatureRows.filter((row) => row.focus).length;
   const newCount = phase2FeatureRows.filter((row) => row.type === "新增").length;
-  return `<div class="changelog-page"><section class="changelog-head"><div><button class="link" onclick="changelogView='timeline';renderApp()">← 返回版本时间线</button><h1>V2.0 二期优化功能清单</h1><p>2026-07-13 · 根据《二期优化核心需求》重排，展示本期新增能力、调整项和开发重点。</p></div></section><section class="feature-summary-grid">${summaryCard("本期功能点", phase2FeatureRows.length, "blue")}${summaryCard("新增能力", newCount, "green")}${summaryCard("开发重点", focusCount, "red")}${summaryCard("覆盖模块", modules, "gray")}</section><section class="phase2-focus-grid">${phase2FocusRows.map((row) => `<article class="phase2-focus-card"><strong>${row[0]}</strong><p>${row[1]}</p></article>`).join("")}</section><section class="changelog-log phase2-compare-log"><div class="log-line head"><strong>对比维度${handoffMark("上一版本对比口径", "二期功能清单按核心需求和上一版本差异组织，交付时优先解释五条主线、关键规则和验收口径，而不是混用旧标注。", "changed")}</strong><span>上一版本 → 本版本新增/变化</span></div>${phase2ComparisonRows.map((row) => `<div class="log-line"><strong>${row[0]}</strong><span><b>上一版本：</b>${row[1]}<br/><b>本版本：</b>${row[2]}</span></div>`).join("")}</section><div class="table-wrap feature-table-wrap"><table class="data-table phase2-feature-table"><thead><tr><th>功能ID</th><th>模块</th><th>变化类型</th><th>功能点</th><th>功能说明</th><th>相对上一版本</th><th>开发重点</th></tr></thead><tbody>${phase2FeatureRows.map((row) => `<tr><td>${row.id}</td><td>${row.module}</td><td><span class="mini-tag ${row.type === "新增" ? "green" : row.type === "调整" ? "blue" : "gray"}">${row.type}</span></td><td><strong>${row.point}</strong></td><td class="left">${row.desc}</td><td class="left">${row.compare}</td><td>${row.focus ? '<span class="mini-tag red">重点</span>' : '<span class="mini-tag gray">补充</span>'}</td></tr>`).join("")}</tbody></table></div></div>`;
+  return `
+    <div class="changelog-page">
+      <section class="changelog-head feature-list-head">
+        <div>
+          <button class="btn secondary compact" type="button" onclick="returnToChangelogTimeline()">← 返回更新日志</button>
+          <h1>V2.0 二期优化功能清单</h1>
+          <p>2026-07-13 · 根据《二期优化核心需求》重排，展示本期新增能力、调整项和开发重点。</p>
+        </div>
+        <div class="changelog-actions">
+          <button class="btn secondary" type="button" onclick="enableHandoffAnnotations()">开启交付标注</button>
+          <button class="btn" type="button" onclick="openPrototypeVersion('v2.0')">查看当前原型</button>
+        </div>
+      </section>
+      <section class="feature-summary-grid">${summaryCard("本期功能点", phase2FeatureRows.length, "blue")}${summaryCard("新增能力", newCount, "green")}${summaryCard("开发重点", focusCount, "red")}${summaryCard("覆盖模块", modules, "gray")}</section>
+      <section class="phase2-focus-grid">${phase2FocusRows.map((row) => `<article class="phase2-focus-card"><strong>${row[0]}</strong><p>${row[1]}</p></article>`).join("")}</section>
+      <section class="changelog-log phase2-compare-log"><div class="log-line head"><strong>对比维度${handoffMark("上一版本对比口径", "二期功能清单按核心需求和上一版本差异组织，交付时优先解释五条主线、关键规则和验收口径，而不是混用旧标注。", "changed")}</strong><span>上一版本 → 本版本新增/变化</span></div>${phase2ComparisonRows.map((row) => `<div class="log-line"><strong>${row[0]}</strong><span><b>上一版本：</b>${row[1]}<br/><b>本版本：</b>${row[2]}</span></div>`).join("")}</section>
+      <section class="feature-list-toolbar">
+        <div>
+          <strong>功能清单</strong>
+          <span>当前显示 ${rows.length} / ${phase2FeatureRows.length} 项</span>
+        </div>
+        <div class="phase2-module-tabs">
+          ${moduleOptions.map((moduleName) => `<button class="${phase2FeatureModuleFilter === moduleName ? "active" : ""}" type="button" onclick="setPhase2FeatureModuleFilter('${moduleName}')">${escapeHtml(moduleName)}</button>`).join("")}
+        </div>
+      </section>
+      <div class="table-wrap feature-table-wrap"><table class="data-table phase2-feature-table"><thead><tr><th>功能ID</th><th>模块</th><th>变化类型</th><th>功能点</th><th>功能说明</th><th>相对上一版本</th><th>开发重点</th></tr></thead><tbody>${rows.map((row) => `<tr><td>${row.id}</td><td>${row.module}</td><td><span class="mini-tag ${row.type === "新增" ? "green" : row.type === "调整" ? "blue" : "gray"}">${row.type}</span></td><td><strong>${row.point}</strong></td><td class="left">${row.desc}</td><td class="left">${row.compare}</td><td>${row.focus ? '<span class="mini-tag red">重点</span>' : '<span class="mini-tag gray">补充</span>'}</td></tr>`).join("")}</tbody></table></div>
+      <footer class="feature-list-footer">
+        <button class="btn secondary" type="button" onclick="returnToChangelogTimeline()">← 返回更新日志</button>
+      </footer>
+    </div>`;
 }
 
 function renderLegacyFeatureListPage() {
@@ -2530,6 +2639,7 @@ function renderLegacyFeatureListPage() {
     <div class="changelog-page">
       <section class="changelog-head">
         <div>
+          <button class="btn secondary compact" type="button" onclick="returnToChangelogTimeline()">← 返回更新日志</button>
           <h1>更新日志 / 功能清单</h1>
           <p>这里可以直接编辑、删除和新增功能点；改动会自动保存在当前浏览器。</p>
         </div>
