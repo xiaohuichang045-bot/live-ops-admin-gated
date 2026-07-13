@@ -471,7 +471,10 @@
 .ops-source-badge.mode-recorded_manual,
 .ops-source-badge.mode-recorded_auto { border-color: #9b6e2b; background: rgb(54 35 10 / 90%); color: #ffd38a; }
 .ops-source-badge.mode-recovering { border-color: #7653bc; background: rgb(40 27 70 / 90%); color: #d7c4ff; }
-.ops-enter-live { width: calc(100% - 32px); margin: 14px 16px 18px; }
+.ops-detail-actions { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; margin: 14px 16px 18px; }
+.ops-detail-actions .ops-button { min-width: 0; }
+.ops-enter-live,
+.ops-view-script { width: 100%; }
 .ops-device-meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 9px 3px; }
 .ops-device-meta strong { overflow: hidden; color: #fff; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
 .ops-device-meta span { color: var(--ops-muted); font-size: 9px; white-space: nowrap; }

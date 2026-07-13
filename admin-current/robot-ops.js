@@ -538,7 +538,7 @@
         </div>
         <section class="ops-detail-alerts"><div class="ops-section-head"><div><h3>最近告警记录</h3><span>${recentAlerts.length} 条</span></div></div>
           ${recentAlerts.length ? recentAlerts.map((entry) => `<div class="ops-detail-alert-row"><span class="ops-presence ${entry.severity === "严重" ? "danger" : "warning"}"></span><div><strong>${escapeHtml(entry.message)}</strong><small>${escapeHtml(entry.type)} · ${formatClock(alertTimestamp(entry), true)}</small></div><em>${escapeHtml(entry.severity)}</em></div>`).join("") : emptyState("暂无历史告警", "该设备当前运行正常。", true)}
-        </section><button class="ops-button ops-enter-live" type="button" onclick="robotOps.enterLiveRoom('${escapeHtml(item.id)}')">进入直播间</button>
+        </section><div class="ops-detail-actions"><button class="ops-button ops-enter-live" type="button" onclick="robotOps.enterLiveRoom('${escapeHtml(item.id)}')">进入直播间</button><button class="ops-button ghost ops-view-script" type="button">查看脚本</button></div>
       </aside>
     </div>`;
   }
