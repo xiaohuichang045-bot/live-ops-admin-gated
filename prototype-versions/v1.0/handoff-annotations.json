@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "updatedAt": "2026-06-03 15:03",
+  "source": "project-json",
+  "annotations": {
+    "点位列表字段::旧版列名为点位名称；本次更名为点位列表，显示系统AGV_点位ID。": {
+      "title": "点位列表字段",
+      "body": "点位列表，显示系统AGV_点位ID。由工程师现场建图绑定机器人后传输点位列表数据到次表中.",
+      "tone": "new",
+      "custom": false,
+      "target": "page:maps",
+      "deleted": false,
+      "savedAt": "2026-06-03 15:02"
+    }
+  }
+}

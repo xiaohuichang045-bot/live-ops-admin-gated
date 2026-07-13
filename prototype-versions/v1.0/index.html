@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>虚拟直播运营后台复刻版</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div id="app" class="admin-shell">
+      <aside class="sidebar">
+        <div class="menu-title">
+          <span class="doc-icon"></span>
+          <span>虚拟直播管理</span>
+          <span class="chevron">⌃</span>
+        </div>
+        <nav id="sideNav" class="side-nav"></nav>
+      </aside>
+
+      <section class="main">
+        <header class="topbar">
+          <button class="icon-button" type="button" aria-label="折叠菜单" onclick="toggleSidebar()">☰</button>
+          <div class="breadcrumb">Dashboard <span>/</span> 虚拟直播管理 <span>/</span> <strong id="breadcrumbPage">机器人管理</strong></div>
+          <div class="top-actions">
+            <button id="handoffToggle" class="handoff-toggle" type="button" onclick="toggleHandoffMode()">交付标注</button>
+            <button class="notify" type="button">♜<span></span></button>
+            <div class="user-avatar"></div>
+          </div>
+        </header>
+        <div id="tabbar" class="tabbar"></div>
+        <main id="content" class="content"></main>
+      </section>
+    </div>
+
+    <div id="modalRoot"></div>
+    <div id="handoffModalRoot"></div>
+    <div id="handoffOverlayRoot"></div>
+    <div id="toast" class="toast"></div>
+    <script src="./feature-list-data.js"></script>
+    <script src="./app.js"></script>
+  </body>
+</html>
