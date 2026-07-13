@@ -903,14 +903,6 @@ const scriptProductBindings = {
 function renderApp() {
   saveBusinessState();
   activePage = safePageKey(activePage);
-  const channelSelector = document.getElementById("channelSelector");
-  if (channelSelector && window.phase2State) channelSelector.value = phase2State.snapshot().currentChannelId;
-  const channelRole = document.getElementById("channelRole");
-  if (channelRole && window.phase2State) {
-    const channel = phase2State.currentChannel();
-    channelRole.textContent = channel.roleLabel;
-    channelRole.classList.toggle("customer", channel.type === "customer");
-  }
   document.body.classList.toggle("handoff-enabled", handoffMode);
   document.getElementById("app").classList.toggle("handoff-enabled", handoffMode);
   const handoffToggle = document.getElementById("handoffToggle");
