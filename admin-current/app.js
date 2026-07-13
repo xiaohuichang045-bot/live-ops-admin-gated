@@ -162,41 +162,53 @@ let changelogView = "timeline";
 let prototypePreviewVersionId = "";
 const paginationState = {};
 const phase2FeatureRows = [
-  ["直播数据大屏", "新增", "实时/录播画面切换", "支持人工选择、本地上传、预览和恢复实时画面", "上一版本以直播间管理为主，没有直播过程中的异常兜底控制台。", true],
-  ["直播数据大屏", "新增", "最近72小时录屏", "录屏按时间倒序展示，24小时内资源优先标识", "上一版本没有录播素材池和故障回放窗口。", true],
-  ["直播数据大屏", "新增", "故障自动录播", "网络、电机、扬声器、推流和系统故障触发自动切换", "上一版本只能管理开播/下播，不能按故障自动切换内容源。", true],
-  ["直播数据大屏", "新增", "故障恢复规则", "低风险故障可自动恢复，高风险故障要求人工确认", "上一版本缺少故障等级和恢复确认规则。", true],
-  ["直播数据大屏", "新增", "操作日志", "记录人工切换、自动切换和恢复操作", "上一版本没有直播控制动作审计。", false],
-  ["机器人运维", "新增", "多条件筛选", "支持版本、在线状态、告警类型和时间窗口", "上一版本机器人管理偏资料维护，本版本增加运维筛查入口。", true],
-  ["机器人运维", "新增", "画面/列表视图", "切换视图时保留当前筛选条件", "上一版本没有面向巡检的大屏画面视图。", true],
-  ["机器人运维", "新增", "设备详情抽屉", "展示网络、麦克风、扬声器、电机和当前告警", "上一版本设备信息停留在配置字段，本版本增加运行状态查看。", true],
-  ["机器人运维", "新增", "跨页状态联动", "与直播数据大屏共用故障、录播和日志状态", "上一版本各页面状态独立，本版本打通直播控制和机器人运维。", true],
-  ["脚本管理", "优化", "阶段-表演-表演单元", "已保存表演默认展开展示所有单元字段", "上一版本已有脚本编排雏形，本版本把阶段执行内容展开到可检查粒度。", true],
-  ["脚本管理", "新增", "脚本内新增表演", "独立编辑后回到原脚本原阶段并高亮回显", "上一版本新增表演主要进入大库，本版本支持在脚本上下文内创建。", true],
-  ["脚本管理", "新增", "内联表演隔离", "脚本内表演不写入公共表演库或机器人私有库", "上一版本资源归属边界不清，本版本明确脚本内临时表演的隔离规则。", true],
-  ["脚本管理", "优化", "整场预览", "路由化全屏只读预览，阶段导航与内容滚动双向联动", "上一版本偏编辑表单，本版本补整场验稿和巡检视图。", true],
-  ["机器人脚本", "新增", "新增脚本入口与模板下载", "机器人详情页可直接新增脚本，下载按版本生成的模板，并自动绑定当前机器人", "上一版本机器人脚本页签仅承接已下发清单，本版本补当前机器人内新增和导入前模板入口。", true],
-  ["机器人脚本", "新增", "脚本导入预览与规则校验", "包含导入解析、预览、同名处理、异常提示、默认不启用和确认导入后绑定当前机器人", "上一版本没有机器人维度的脚本导入闭环。", true],
-  ["机器人脚本", "新增", "版本能力校验", "R/Z版阻断地图导览配置，AGV版可继续", "上一版本机器人版本只是资料字段，本版本参与脚本能力判断。", true],
-  ["渠道与资源", "新增", "平台/客户渠道", "平台渠道保留人脸、智能体、大模型、售卖/租赁等配置，客户渠道隐藏这些敏感能力", "上一版本缺少平台运营和客户运营的身份差异。", true],
-  ["渠道与资源", "新增", "渠道数据隔离", "大库、机器人私有资源和历史对话跟随当前渠道", "上一版本数据默认混在同一原型池，本版本开始按渠道隔离。", true],
-  ["动作管理", "调整", "单一动作只读", "平台下发资源仅支持搜索、筛选和引用", "上一版本客户侧可新增/编辑动作，本版本收敛为平台下发资源。", true],
-  ["动作管理", "新增", "多动作组合", "支持新增、编辑、删除、排序、时间间隔，并只能引用当前渠道可用且兼容当前机器人版本/能力的单一动作", "上一版本动作管理偏单动作维护，本版本重点支持组合编排。", true],
-  ["历史对话", "新增", "条件查询", "支持时间、直播间、机器人、用户和关键词筛选", "上一版本没有独立历史对话查询页面。", false],
-  ["历史对话", "新增", "对话时间线", "点击会话后在抽屉展示完整消息时间线", "上一版本不能按会话复盘直播互动上下文。", false],
+  ["直播数据大屏", "新增", "实时/录播画面切换", "在直播时长右侧提供画面来源切换，支持实时画面与录播画面互切。", "上一版本只有直播间管理和基础开播/下播操作，缺少直播异常兜底入口。", true],
+  ["直播数据大屏", "新增", "故障自动切录播", "网络、电机、扬声器、麦克风、推流和系统异常触发时自动切换可用录播。", "上一版本不能按故障类型自动切换内容源。", true],
+  ["直播数据大屏", "新增", "最近72小时录屏池", "系统保留最近72小时录屏，自动切换优先使用最近24小时可用录屏。", "上一版本没有录播素材池、时间筛选和24小时优先标识。", true],
+  ["直播数据大屏", "新增", "人工选择录屏文件", "人工切换支持按时间区间筛选、选择文件、预览、下载和本地上传录屏。", "上一版本没有人工指定兜底画面的操作路径。", true],
+  ["直播数据大屏", "新增", "恢复自检与切回实时", "异常恢复后进入自检流程，自检通过后可切回实时画面，高风险异常要求人工确认。", "上一版本缺少恢复检测、确认恢复和恢复通知规则。", true],
+  ["直播数据大屏", "新增", "画面状态与操作日志", "明确展示当前实时/录播状态，并记录自动切换、人工切换、恢复实时等操作日志。", "上一版本没有直播控制动作审计。", false],
+  ["脚本管理", "优化", "阶段-表演-表演单元默认展开", "脚本编辑页按阶段、表演、表演单元层级默认展开已保存内容。", "上一版本脚本编辑偏表单，已保存内容不便逐层检查。", true],
+  ["脚本管理", "优化", "表演单元只读检查", "每个表演单元展示文本、动作或动作组、结束依据、执行次数和等待时长。", "上一版本表演内容检查粒度不足。", true],
+  ["脚本管理", "新增", "脚本内新增表演", "新增表演进入独立编辑页，保存后返回原脚本原阶段并自动回显。", "上一版本新增表演主要进入表演大库，本版本支持脚本上下文内创建。", true],
+  ["脚本管理", "新增", "脚本内表演隔离", "脚本内新增表演随当前脚本保存，不进入表演管理大库或其他机器人私有库。", "上一版本资源归属边界不清，本版本明确脚本内临时表演隔离。", true],
+  ["脚本管理", "优化", "整场脚本预览", "脚本顶部提供只读预览页，完整展示脚本信息、阶段、绑定资源、表演和表演单元。", "上一版本缺少交付前整场验稿视图。", true],
+  ["脚本管理", "优化", "预览导航联动", "整场预览支持左侧阶段导航与右侧内容滚动双向联动。", "上一版本无法快速定位和复核阶段内容。", false],
+  ["机器人脚本", "新增", "机器人详情脚本管理Tab", "机器人详情页脚本管理Tab提供新增脚本、导入脚本和模板下载入口。", "上一版本机器人脚本页签只承接已下发清单。", true],
+  ["机器人脚本", "新增", "当前机器人新增脚本", "从机器人详情新增脚本时自动绑定当前机器人，顶部只读展示机器人ID、名称、版本和渠道。", "上一版本新增脚本仍需要人工选择机器人上下文。", true],
+  ["机器人脚本", "新增", "机器人脚本导入预览", "导入弹窗展示当前机器人信息、上传区域、格式说明、校验结果、导入预览和确认导入。", "上一版本没有机器人维度的脚本导入闭环。", true],
+  ["机器人脚本", "新增", "按版本下载模板", "模板根据当前机器人版本生成，包含字段说明、示例数据、填写规则和能力限制提示。", "上一版本模板不区分机器人版本能力。", false],
+  ["机器人脚本", "新增", "版本能力校验", "R/Z版阻断地图和导览配置，AGV机器人允许导览脚本和地图路线。", "上一版本机器人版本只是资料字段，本版本参与脚本能力判断。", true],
+  ["机器人脚本", "新增", "导入与启用规则", "导入整体校验失败不落库；新增和导入默认不启用；同一机器人同一时间仅一个启用脚本。", "上一版本缺少同名、覆盖、启用冲突和默认启用边界。", true],
+  ["机器人运维", "新增", "直播机器人数据范围", "运维大屏仅展示有实体硬件且机器人类型为直播的设备。", "上一版本机器人管理偏资料维护，没有独立运维值守范围。", true],
+  ["机器人运维", "新增", "运维多条件筛选", "支持按机器人版本、在线状态、告警类型和时间范围筛选。", "上一版本缺少面向巡检的筛选入口。", true],
+  ["机器人运维", "新增", "画面/列表/全屏视图", "支持画面视图、列表视图和全屏监控切换，并保留当前筛选条件。", "上一版本没有面向多设备的画面墙和列表切换。", true],
+  ["机器人运维", "新增", "告警与设备详情", "告警按异常类型优先级展示；点击设备打开详情，查看画面来源、网络、麦克风、扬声器、电机、推流和最近告警。", "上一版本设备信息停留在配置字段，本版本增加运行状态查看。", true],
+  ["机器人运维", "新增", "跨页跳转联动", "设备详情支持进入当前机器人直播数据大屏和脚本执行管理页面。", "上一版本运维、直播控制和脚本执行入口相互割裂。", false],
+  ["渠道与资源", "新增", "三类数据归属", "统一区分渠道公共数据、机器人私有数据和平台下发资源。", "上一版本公共模板、机器人私有资源和平台资源边界较弱。", true],
+  ["渠道与资源", "新增", "渠道级数据隔离", "大库默认展示当前渠道公共数据，机器人详情只展示当前机器人私有数据，跨渠道默认不可查看、引用或编辑。", "上一版本数据默认混在同一原型池。", true],
+  ["渠道与资源", "新增", "平台与客户权限差异", "微视中国作为平台最高权限维护平台资源并下发；客户渠道隐藏人脸视觉和智能体等敏感能力。", "上一版本缺少平台运营和客户运营的身份差异。", true],
+  ["渠道与资源", "调整", "地图与导览能力边界", "仅AGV或AGV+Z机器人可配置地图和导览路线，R/Z版新增、保存、导入时必须阻断。", "上一版本地图导览能力与机器人版本未强绑定。", true],
+  ["动作与下发", "调整", "单一动作平台维护", "单一动作属于平台下发资源，微视中国可新增、编辑、删除、启停和批量下发。", "上一版客户侧可维护单一动作，本版本收敛为平台维护。", true],
+  ["动作与下发", "调整", "客户侧单一动作只读", "客户渠道只能查看、搜索、筛选和引用已下发单一动作，不显示新增、编辑、删除、状态开关和批量下发。", "上一版本客户侧动作权限过宽。", true],
+  ["动作与下发", "新增", "多动作组合客户可配", "多动作组合属于客户可配置资源，客户可新增、编辑、删除、搜索和引用动作组。", "上一版本动作管理偏单动作维护，本版本支持组合编排。", true],
+  ["动作与下发", "新增", "动作组可用性校验", "动作组只能选择当前渠道可用且当前机器人版本支持的单一动作，保存和引用时校验不可用动作。", "上一版本组合内动作可用性缺少阻断规则。", true],
+  ["动作与下发", "新增", "批量下发入口", "在资源大库批量下发中支持技能、表演、单一动作、动作组、素材、人脸等资源。", "上一版本缺少平台向渠道或机器人下发资源的统一入口。", true],
+  ["动作与下发", "新增", "渠道/机器人下发范围", "先选渠道，再按渠道筛机器人，并可继续按机器人类型、版本筛选；支持下发到渠道或指定机器人。", "上一版本下发对象和机器人筛选路径不清。", true],
+  ["动作与下发", "调整", "下发只读引用", "下发到渠道或机器人后作为只读引用使用，不生成渠道副本或机器人私有副本。", "上一版本容易把下发资源理解为复制资源。", true],
 ].map((row, index) => ({ id: `P2-${String(index + 1).padStart(3, "0")}`, module: row[0], type: row[1], point: row[2], desc: row[3], compare: row[4], focus: row[5] }));
 const phase2ComparisonRows = [
-  ["直播控制", "上一版本只有直播间管理和基础开播/下播操作。", "本版本新增直播数据大屏、故障自动切录播、录播恢复和操作日志。"],
+  ["直播异常兜底", "上一版本只有直播间管理和基础开播/下播操作。", "本版本新增自动切录播、人工选择录屏、恢复自检、状态提示和操作日志。"],
+  ["脚本编排验稿", "上一版本已有脚本管理和阶段配置，但表演内容检查和整场预览不足。", "本版本按阶段-表演-表演单元展开内容，支持脚本内新增表演和只读整场预览。"],
+  ["机器人脚本管理", "上一版本机器人详情页脚本能力偏绑定查看。", "本版本补新增、导入、模板下载、版本能力校验、同名覆盖和唯一启用规则。"],
   ["机器人运维", "上一版本以机器人资料、技能、表演和脚本绑定为主。", "本版本新增运维大屏、设备告警、运行状态抽屉和直播大屏联动。"],
-  ["脚本编排", "上一版本已有脚本管理和阶段配置，但脚本内表演、预览和导入闭环不足。", "本版本重点补脚本内新增表演、整场预览、机器人脚本模板和版本能力校验。"],
-  ["资源与权限", "上一版本公共模板、机器人私有资源和客户渠道边界较弱。", "本版本补平台/客户渠道、渠道数据隔离、单一动作只读和多动作组合边界。"],
-  ["复盘查询", "上一版本缺少面向直播复盘的对话查询视图。", "本版本新增历史对话筛选和会话时间线抽屉。"],
+  ["渠道与平台下发", "上一版本公共模板、机器人私有资源和客户渠道边界较弱。", "本版本补平台/客户渠道、三类数据归属、客户敏感功能隐藏、单一动作平台维护和渠道/机器人下发。"],
 ];
 const phase2FocusRows = [
-  ["直播故障兜底", "把直播异常从人工发现升级为自动切录播、人工恢复和日志留痕。"],
-  ["机器人运维联动", "把机器人状态、设备告警和直播画面联动成可巡检的运维入口。"],
-  ["脚本生产闭环", "补齐脚本内表演、整场预览、模板下载、导入预览和版本能力校验。"],
-  ["权限与资源边界", "收敛平台资源、客户渠道、机器人私有资源和动作引用规则，减少跨渠道混用。"],
+  ["直播异常兜底", "把黑屏、卡死、推流异常等风险收敛为自动/人工切录播、恢复自检和日志留痕。"],
+  ["脚本生产与验稿", "补齐脚本内表演、整场预览、模板下载、导入预览、同名覆盖和版本能力校验。"],
+  ["机器人运维联动", "把直播机器人画面、在线状态、设备告警、详情抽屉和直播大屏跳转串起来。"],
+  ["渠道隔离与平台下发", "明确平台资源、客户渠道、机器人私有资源、单一动作和多动作组合的权限边界。"],
 ];
 
 function prototypeVersions() {
@@ -205,19 +217,20 @@ function prototypeVersions() {
     {
       id: "v2.0",
       title: "V2.0 · 二期优化",
-      date: "2026-07-11",
+      date: "2026-07-13",
       status: "开发中",
       statusClass: "",
       current: true,
       featureView: "phase2",
       previewUrl: "./index.html?handoff=1#robots",
       annotationSource: "当前根目录 handoff-annotations.json",
-      headline: "直播故障录播、运维联动、脚本编排与渠道隔离",
+      headline: "直播异常兜底、脚本验稿、机器人运维与平台下发",
       summaryItems: [
-        "新增直播异常自动切录播、人工切换与恢复机制",
-        "新增机器人运维大屏、故障告警与跨页状态联动",
-        "优化脚本编排、整场预览、模板下载与批量导入",
-        "完善渠道数据隔离、动作管理和历史对话查询",
+        "新增直播异常自动/人工切录播、恢复自检与操作日志",
+        "优化脚本编辑展示、脚本内新增表演与整场预览",
+        "补齐机器人详情脚本新增、导入、模板下载、版本能力校验和唯一启用",
+        "新增机器人运维大屏、设备详情、告警筛选和直播大屏联动",
+        "完善渠道隔离、单一动作平台维护、多动作组合和渠道/机器人下发",
       ],
       detail: `本版本共记录 ${phase2FeatureRows.length} 项新增与优化功能，本次开发重点是：${focusText}。`,
     },
@@ -1264,7 +1277,7 @@ function onPhase2ChannelChanged() {
 function renderChannelAccessBanner() {
   if (["live-dashboard", "ops-dashboard"].includes(activePage) || !window.phase2State) return "";
   const channel = phase2State.currentChannel();
-  return `<div class="channel-access-banner ${channel.type}"><strong>${escapeHtml(channel.name)}${handoffMark("渠道数据隔离边界", "本次二期新增平台/客户渠道边界：业务数据按当前渠道过滤，平台下发资源只读，机器人私有资源只在本机器人上下文内使用。", "new")}</strong><span>${channel.type === "platform" ? "微视中国：平台最高权限，维护平台资源大库并向客户渠道下发。" : "客户渠道模拟：仅显示本渠道公共资源、本渠道机器人私有资源和平台已下发资源；平台下发资源只读。"}</span></div>`;
+  return `<div class="channel-access-banner ${channel.type}"><strong>${escapeHtml(channel.name)}${handoffMark("渠道数据隔离边界", "本期统一三类数据：渠道公共数据、机器人私有数据、平台下发资源；大库按当前渠道展示，机器人详情只展示当前机器人私有数据。", "new")}</strong><span>${channel.type === "platform" ? "微视中国：平台最高权限，维护平台资源大库并向客户渠道下发。" : "客户渠道模拟：仅显示本渠道公共资源、本渠道机器人私有资源和平台已下发资源；平台下发资源只读。"}</span></div>`;
 }
 
 function pageRenderers() {
@@ -2448,7 +2461,7 @@ function renderChangelogPage() {
 }
 
 function renderPrototypeVersionCard(version) {
-  const mark = version.id === "v2.0" ? handoffMark("二期开发标注总览", "本次交付标注只保留二期开发范围，用于说明直播故障兜底、机器人运维联动、脚本生产闭环、渠道隔离、动作管理和历史对话复盘。", "info") : "";
+  const mark = version.id === "v2.0" ? handoffMark("二期开发标注总览", "本次交付标注按二期优化核心需求重排，聚焦直播异常兜底、脚本编辑与预览、机器人脚本管理、机器人运维大屏、渠道隔离与平台下发。", "info") : "";
   const summaryMarkup = version.summaryItems.length > 1
     ? `<ul>${version.summaryItems.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>`
     : `<p>${escapeHtml(version.summaryItems[0] || "")}</p>`;
@@ -2505,7 +2518,7 @@ function renderPhase2FeatureListPage() {
   const modules = new Set(phase2FeatureRows.map((row) => row.module)).size;
   const focusCount = phase2FeatureRows.filter((row) => row.focus).length;
   const newCount = phase2FeatureRows.filter((row) => row.type === "新增").length;
-  return `<div class="changelog-page"><section class="changelog-head"><div><button class="link" onclick="changelogView='timeline';renderApp()">← 返回版本时间线</button><h1>V2.0 二期优化功能清单</h1><p>2026-07-11 · 对比 V1.0 上一版本，展示本期新增能力、调整项和开发重点。</p></div></section><section class="feature-summary-grid">${summaryCard("本期功能点", phase2FeatureRows.length, "blue")}${summaryCard("新增能力", newCount, "green")}${summaryCard("开发重点", focusCount, "red")}${summaryCard("覆盖模块", modules, "gray")}</section><section class="phase2-focus-grid">${phase2FocusRows.map((row) => `<article class="phase2-focus-card"><strong>${row[0]}</strong><p>${row[1]}</p></article>`).join("")}</section><section class="changelog-log phase2-compare-log"><div class="log-line head"><strong>对比维度${handoffMark("上一版本对比口径", "二期功能清单按上一版本和本版本差异组织，交付时优先解释新增能力、调整项和开发重点，而不是混用旧标注。", "changed")}</strong><span>上一版本 → 本版本新增/变化</span></div>${phase2ComparisonRows.map((row) => `<div class="log-line"><strong>${row[0]}</strong><span><b>上一版本：</b>${row[1]}<br/><b>本版本：</b>${row[2]}</span></div>`).join("")}</section><div class="table-wrap feature-table-wrap"><table class="data-table phase2-feature-table"><thead><tr><th>功能ID</th><th>模块</th><th>变化类型</th><th>功能点</th><th>功能说明</th><th>相对上一版本</th><th>开发重点</th></tr></thead><tbody>${phase2FeatureRows.map((row) => `<tr><td>${row.id}</td><td>${row.module}</td><td><span class="mini-tag ${row.type === "新增" ? "green" : row.type === "调整" ? "blue" : "gray"}">${row.type}</span></td><td><strong>${row.point}</strong></td><td class="left">${row.desc}</td><td class="left">${row.compare}</td><td>${row.focus ? '<span class="mini-tag red">重点</span>' : '<span class="mini-tag gray">补充</span>'}</td></tr>`).join("")}</tbody></table></div></div>`;
+  return `<div class="changelog-page"><section class="changelog-head"><div><button class="link" onclick="changelogView='timeline';renderApp()">← 返回版本时间线</button><h1>V2.0 二期优化功能清单</h1><p>2026-07-13 · 根据《二期优化核心需求》重排，展示本期新增能力、调整项和开发重点。</p></div></section><section class="feature-summary-grid">${summaryCard("本期功能点", phase2FeatureRows.length, "blue")}${summaryCard("新增能力", newCount, "green")}${summaryCard("开发重点", focusCount, "red")}${summaryCard("覆盖模块", modules, "gray")}</section><section class="phase2-focus-grid">${phase2FocusRows.map((row) => `<article class="phase2-focus-card"><strong>${row[0]}</strong><p>${row[1]}</p></article>`).join("")}</section><section class="changelog-log phase2-compare-log"><div class="log-line head"><strong>对比维度${handoffMark("上一版本对比口径", "二期功能清单按核心需求和上一版本差异组织，交付时优先解释五条主线、关键规则和验收口径，而不是混用旧标注。", "changed")}</strong><span>上一版本 → 本版本新增/变化</span></div>${phase2ComparisonRows.map((row) => `<div class="log-line"><strong>${row[0]}</strong><span><b>上一版本：</b>${row[1]}<br/><b>本版本：</b>${row[2]}</span></div>`).join("")}</section><div class="table-wrap feature-table-wrap"><table class="data-table phase2-feature-table"><thead><tr><th>功能ID</th><th>模块</th><th>变化类型</th><th>功能点</th><th>功能说明</th><th>相对上一版本</th><th>开发重点</th></tr></thead><tbody>${phase2FeatureRows.map((row) => `<tr><td>${row.id}</td><td>${row.module}</td><td><span class="mini-tag ${row.type === "新增" ? "green" : row.type === "调整" ? "blue" : "gray"}">${row.type}</span></td><td><strong>${row.point}</strong></td><td class="left">${row.desc}</td><td class="left">${row.compare}</td><td>${row.focus ? '<span class="mini-tag red">重点</span>' : '<span class="mini-tag gray">补充</span>'}</td></tr>`).join("")}</tbody></table></div></div>`;
 }
 
 function renderLegacyFeatureListPage() {
@@ -5349,8 +5362,8 @@ function renderSingleActionList() {
         <button class="btn" onclick="toast('已按条件查询平台动作')">查询</button>
       </div>
       ${platform
-        ? `<div class="toolbar-actions"><button class="btn" onclick="openActionModal()">＋ 新增动作</button><button class="btn secondary" onclick="openBatchModal('actions')">批量下发</button></div>`
-        : `<span class="readonly-resource-note">平台下发 · 只读资源${handoffMark("单一动作只读资源", "单一动作由微视中国平台维护并下发；客户侧和机器人详情页只能查看、筛选和引用，不能新增、编辑或删除。", "changed")}</span>`}
+        ? `<div class="toolbar-actions"><button class="btn" onclick="openActionModal()">＋ 新增动作</button><button class="btn secondary" onclick="openBatchModal('actions')">批量下发</button>${handoffMark("单一动作平台维护", "单一动作属于平台下发资源，微视中国可新增、编辑、删除、启停和批量下发；客户渠道只能查看、搜索、筛选和引用。", "changed")}${handoffMark("批量下发范围", "资源大库的批量下发支持技能、表演、单一动作、动作组、素材、人脸等资源；本期重点是单一动作。", "new")}</div>`
+        : `<span class="readonly-resource-note">平台下发 · 只读资源${handoffMark("客户侧单一动作只读", "客户侧不展示单一动作新增、编辑、删除、上传、批量下发、状态开关和操作列；机器人详情中只能添加引用，不能改写资源本体。", "info")}</span>`}
     </div>
     <div class="table-wrap">
       <table class="data-table">
@@ -6063,7 +6076,7 @@ function renderBatchDistributionModal() {
   openModal(`
     <div class="modal large distribution-modal">
       <div class="modal-header">
-        <div class="modal-title">${config.title}</div>
+        <div class="modal-title">${config.title}${handoffMark("渠道与机器人下发", "下发时先选渠道，再按渠道筛机器人，并可按机器人类型和版本继续筛选；支持下发到渠道或指定机器人。", "new")}</div>
         <button class="modal-close" onclick="closeModal()">×</button>
       </div>
       <div class="modal-body">
@@ -6129,7 +6142,7 @@ function renderBatchDistributionModal() {
         </div>
         <div class="distribution-summary">
           <strong>下发预览</strong>
-          <span>${selectedResourceCount} 个${config.label} · ${selectedChannelNames}${batchDistributionDraft.mode === "robot" ? ` · ${selectedRobotCount} 台机器人` : " · 渠道内可引用"}</span>
+          <span>${selectedResourceCount} 个${config.label} · ${selectedChannelNames}${batchDistributionDraft.mode === "robot" ? ` · ${selectedRobotCount} 台机器人` : " · 渠道内可引用"}${handoffMark("下发只读引用", "下发到渠道或指定机器人后，资源在客户侧作为平台下发的只读引用使用，不生成渠道副本或机器人私有副本。", "info")}</span>
         </div>
       </div>
       <div class="modal-footer">
