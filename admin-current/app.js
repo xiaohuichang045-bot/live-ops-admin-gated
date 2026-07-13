@@ -161,7 +161,7 @@ let featureListRows = initialFeatureListRows();
 let featureListFilters = { keyword: "", client: "全部端", module1: "全部模块", phase: "全部阶段", priority: "全部优先级" };
 let changelogView = "timeline";
 let changelogStatusFilter = "全部版本";
-let phase2FeatureModuleFilter = "全部模块";
+let phase2FeatureFilters = { keyword: "", module: "全部模块", type: "全部变化", focus: "全部重点" };
 let prototypePreviewVersionId = "";
 const paginationState = {};
 const phase2FeatureRows = [
@@ -2476,22 +2476,16 @@ function renderChangelogPage() {
   if (changelogView === "prototype-preview") return renderPrototypeVersionPreviewPage();
   const versions = prototypeVersions();
   const visibleVersions = filteredPrototypeVersions(versions);
-  const stats = changelogStats(versions);
   const current = versions.find((version) => version.current) || versions[0];
   return `
     <div class="changelog-page">
       <section class="changelog-head changelog-hero changelog-clean-head">
         <div>
           <h1>更新日志</h1>
-          <p>当前只展示版本交付记录和关键入口，详细功能点进入清单页查看。</p>
-          <div class="changelog-clean-meta">
-            <span>当前版本：${escapeHtml(current?.title || "-")}</span>
-            <span>${stats.currentFeatureCount} 项功能</span>
-            <span>${stats.annotationCount} 条交付标注</span>
-          </div>
+          <p>按版本查看交付记录；详细功能点可进入对应清单筛选与查看。</p>
+          <div class="changelog-current-version">当前版本：${escapeHtml(current?.title || "-")}</div>
         </div>
         <div class="changelog-actions">
-          <button class="btn secondary" type="button" onclick="enableHandoffAnnotations()">开启交付标注</button>
           <button class="btn" type="button" onclick="openChangelogFeatureList('phase2')">查看当前功能清单</button>
         </div>
       </section>
@@ -2513,10 +2507,7 @@ function renderChangelogPage() {
 function renderPrototypeVersionCard(version) {
   const featureCount = version.featureView === "phase2" ? phase2FeatureRows.length : featureListRows.length;
   const focusCount = version.featureView === "phase2" ? phase2FeatureRows.filter((row) => row.focus).length : featureListRows.filter((row) => row.priority === "高").length;
-  const actionLabel = version.current ? "当前开发版" : "历史发布版";
-  const highlightLimit = version.current ? 3 : 1;
-  const highlights = version.summaryItems.slice(0, highlightLimit);
-  const moreCount = Math.max(0, version.summaryItems.length - highlightLimit);
+  const summary = version.summaryItems.slice(0, version.current ? 2 : 1).join("；");
   return `
     <article class="release-card release-card-clean ${version.current ? "current" : ""}">
       <div class="release-date-block">
@@ -2529,21 +2520,15 @@ function renderPrototypeVersionCard(version) {
             <h2>${escapeHtml(version.title)}</h2>
             <p class="release-headline">${escapeHtml(version.headline)}</p>
           </div>
-          <span class="mini-tag ${version.current ? "blue" : "green"}">${actionLabel}</span>
         </div>
-        <ul class="release-highlights">
-          ${highlights.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}
-          ${moreCount ? `<li class="muted">另 ${moreCount} 项进入功能清单查看</li>` : ""}
-        </ul>
-        <div class="release-card-foot">
-          <span>${featureCount} 功能点</span>
-          <span>${focusCount} 重点项</span>
-          <span>${version.featureView === "phase2" ? phase2FocusRows.length : 1} 条主线</span>
+        <p class="release-summary-line">${escapeHtml(summary)}</p>
+        <div class="release-card-meta">
+          <span>${featureCount} 项功能</span>
+          <span>${focusCount} 项重点</span>
         </div>
         <div class="release-actions">
-          <button class="btn" type="button" onclick="openChangelogFeatureList('${escapeHtml(version.featureView)}')">查看功能清单</button>
+          <button class="btn" type="button" onclick="openChangelogFeatureList('${escapeHtml(version.featureView)}')">${version.current ? "查看功能清单" : "查看历史清单"}</button>
           <button class="btn secondary" type="button" onclick="openPrototypeVersion('${escapeHtml(version.id)}')">查看该版本原型</button>
-          <button class="btn ghost" type="button" onclick="enableHandoffAnnotations()">开启交付标注</button>
         </div>
       </div>
     </article>`;
@@ -2593,9 +2578,67 @@ function enableHandoffAnnotations() {
   renderApp();
 }
 
-function setPhase2FeatureModuleFilter(moduleName) {
-  phase2FeatureModuleFilter = moduleName;
+function filteredPhase2FeatureRows() {
+  const keyword = phase2FeatureFilters.keyword.trim().toLowerCase();
+  return phase2FeatureRows.filter((row) => {
+    const matchesKeyword = !keyword || [row.id, row.module, row.type, row.point, row.desc, row.compare].join(" ").toLowerCase().includes(keyword);
+    const matchesModule = phase2FeatureFilters.module === "全部模块" || row.module === phase2FeatureFilters.module;
+    const matchesType = phase2FeatureFilters.type === "全部变化" || row.type === phase2FeatureFilters.type;
+    const matchesFocus = phase2FeatureFilters.focus === "全部重点" || (phase2FeatureFilters.focus === "仅开发重点" && row.focus);
+    return matchesKeyword && matchesModule && matchesType && matchesFocus;
+  });
+}
+
+function setPhase2FeatureFilter(field, value) {
+  phase2FeatureFilters[field] = value;
   renderApp();
+}
+
+function clearPhase2FeatureFilters() {
+  phase2FeatureFilters = { keyword: "", module: "全部模块", type: "全部变化", focus: "全部重点" };
+  renderApp();
+}
+
+function phase2FeatureTypeClass(type) {
+  if (type === "新增") return "green";
+  if (type === "调整") return "blue";
+  return "gray";
+}
+
+function openPhase2FeatureDrawer(featureId) {
+  const row = phase2FeatureRows.find((item) => item.id === featureId);
+  if (!row) return;
+  document.getElementById("modalRoot").innerHTML = `
+    <div class="phase2-feature-drawer-backdrop" onclick="if(event.target===this)closePhase2FeatureDrawer()">
+      <aside class="phase2-feature-drawer" role="dialog" aria-modal="true" aria-label="功能点详情">
+        <header class="phase2-feature-drawer-head">
+          <div>
+            <span class="phase2-feature-id">${escapeHtml(row.id)}</span>
+            <h2>${escapeHtml(row.point)}</h2>
+          </div>
+          <button class="modal-close" type="button" aria-label="关闭详情" onclick="closePhase2FeatureDrawer()">×</button>
+        </header>
+        <div class="phase2-feature-drawer-body">
+          <div class="phase2-feature-tags">
+            <span>${escapeHtml(row.module)}</span>
+            <span class="${phase2FeatureTypeClass(row.type)}">${escapeHtml(row.type)}</span>
+            <span class="${row.focus ? "focus" : "neutral"}">${row.focus ? "开发重点" : "常规项"}</span>
+          </div>
+          <section class="phase2-feature-detail-block">
+            <h3>功能说明</h3>
+            <p>${escapeHtml(row.desc)}</p>
+          </section>
+          <section class="phase2-feature-detail-block">
+            <h3>相对上一版本</h3>
+            <p>${escapeHtml(row.compare)}</p>
+          </section>
+        </div>
+      </aside>
+    </div>`;
+}
+
+function closePhase2FeatureDrawer() {
+  document.getElementById("modalRoot").replaceChildren();
 }
 
 function renderPrototypeVersionPreviewPage() {
@@ -2620,39 +2663,34 @@ function renderPrototypeVersionPreviewPage() {
 
 function renderPhase2FeatureListPage() {
   const moduleOptions = ["全部模块", ...Array.from(new Set(phase2FeatureRows.map((row) => row.module)))];
-  const rows = phase2FeatureModuleFilter === "全部模块" ? phase2FeatureRows : phase2FeatureRows.filter((row) => row.module === phase2FeatureModuleFilter);
-  const modules = moduleOptions.length - 1;
-  const focusCount = phase2FeatureRows.filter((row) => row.focus).length;
-  const newCount = phase2FeatureRows.filter((row) => row.type === "新增").length;
+  const rows = filteredPhase2FeatureRows();
+  const hasActiveFilters = phase2FeatureFilters.keyword || phase2FeatureFilters.module !== "全部模块" || phase2FeatureFilters.type !== "全部变化" || phase2FeatureFilters.focus !== "全部重点";
   return `
     <div class="changelog-page">
       <section class="changelog-head feature-list-head">
         <div>
           <button class="btn secondary compact" type="button" onclick="returnToChangelogTimeline()">← 返回更新日志</button>
           <h1>V2.0 二期优化功能清单</h1>
-          <p>2026-07-13 · 根据《二期优化核心需求》重排，展示本期新增能力、调整项和开发重点。</p>
+          <p>筛选后点击功能点，查看完整说明与相对上一版本的变化。</p>
         </div>
         <div class="changelog-actions">
-          <button class="btn secondary" type="button" onclick="enableHandoffAnnotations()">开启交付标注</button>
           <button class="btn" type="button" onclick="openPrototypeVersion('v2.0')">查看当前原型</button>
         </div>
       </section>
-      <section class="feature-summary-grid">${summaryCard("本期功能点", phase2FeatureRows.length, "blue")}${summaryCard("新增能力", newCount, "green")}${summaryCard("开发重点", focusCount, "red")}${summaryCard("覆盖模块", modules, "gray")}</section>
-      <section class="phase2-focus-grid">${phase2FocusRows.map((row) => `<article class="phase2-focus-card"><strong>${row[0]}</strong><p>${row[1]}</p></article>`).join("")}</section>
-      <section class="changelog-log phase2-compare-log"><div class="log-line head"><strong>对比维度${handoffMark("上一版本对比口径", "二期功能清单按核心需求和上一版本差异组织，交付时优先解释五条主线、关键规则和验收口径，而不是混用旧标注。", "changed")}</strong><span>上一版本 → 本版本新增/变化</span></div>${phase2ComparisonRows.map((row) => `<div class="log-line"><strong>${row[0]}</strong><span><b>上一版本：</b>${row[1]}<br/><b>本版本：</b>${row[2]}</span></div>`).join("")}</section>
-      <section class="feature-list-toolbar">
+      <section class="feature-list-toolbar phase2-feature-toolbar">
         <div>
           <strong>功能清单</strong>
           <span>当前显示 ${rows.length} / ${phase2FeatureRows.length} 项</span>
         </div>
-        <div class="phase2-module-tabs">
-          ${moduleOptions.map((moduleName) => `<button class="${phase2FeatureModuleFilter === moduleName ? "active" : ""}" type="button" onclick="setPhase2FeatureModuleFilter('${moduleName}')">${escapeHtml(moduleName)}</button>`).join("")}
+        <div class="phase2-feature-filters">
+          <input class="input phase2-feature-search" value="${escapeHtml(phase2FeatureFilters.keyword)}" placeholder="搜索功能 ID、模块或功能点" oninput="setPhase2FeatureFilter('keyword', this.value)" />
+          <select class="select" onchange="setPhase2FeatureFilter('module', this.value)">${moduleOptions.map((moduleName) => `<option value="${escapeHtml(moduleName)}" ${phase2FeatureFilters.module === moduleName ? "selected" : ""}>${escapeHtml(moduleName)}</option>`).join("")}</select>
+          <select class="select" onchange="setPhase2FeatureFilter('type', this.value)">${["全部变化", "新增", "优化", "调整"].map((type) => `<option value="${type}" ${phase2FeatureFilters.type === type ? "selected" : ""}>${type}</option>`).join("")}</select>
+          <select class="select" onchange="setPhase2FeatureFilter('focus', this.value)">${["全部重点", "仅开发重点"].map((focus) => `<option value="${focus}" ${phase2FeatureFilters.focus === focus ? "selected" : ""}>${focus}</option>`).join("")}</select>
+          ${hasActiveFilters ? `<button class="btn secondary phase2-filter-reset" type="button" onclick="clearPhase2FeatureFilters()">清空筛选</button>` : ""}
         </div>
       </section>
-      <div class="table-wrap feature-table-wrap"><table class="data-table phase2-feature-table"><thead><tr><th>功能ID</th><th>模块</th><th>变化类型</th><th>功能点</th><th>功能说明</th><th>相对上一版本</th><th>开发重点</th></tr></thead><tbody>${rows.map((row) => `<tr><td>${row.id}</td><td>${row.module}</td><td><span class="mini-tag ${row.type === "新增" ? "green" : row.type === "调整" ? "blue" : "gray"}">${row.type}</span></td><td><strong>${row.point}</strong></td><td class="left">${row.desc}</td><td class="left">${row.compare}</td><td>${row.focus ? '<span class="mini-tag red">重点</span>' : '<span class="mini-tag gray">补充</span>'}</td></tr>`).join("")}</tbody></table></div>
-      <footer class="feature-list-footer">
-        <button class="btn secondary" type="button" onclick="returnToChangelogTimeline()">← 返回更新日志</button>
-      </footer>
+      <div class="table-wrap feature-table-wrap phase2-feature-table-wrap"><table class="data-table phase2-feature-table"><thead><tr><th>功能点</th><th>模块</th><th>变化类型</th><th>开发重点</th><th>功能ID</th></tr></thead><tbody>${rows.length ? rows.map((row) => `<tr class="phase2-feature-row" tabindex="0" role="button" aria-label="查看 ${escapeHtml(row.point)} 详情" onclick="openPhase2FeatureDrawer('${row.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openPhase2FeatureDrawer('${row.id}')}\"><td class="left"><strong>${row.point}</strong><span class="phase2-row-hint">查看详情</span></td><td>${row.module}</td><td><span class="mini-tag ${phase2FeatureTypeClass(row.type)}">${row.type}</span></td><td>${row.focus ? '<span class="mini-tag red">重点</span>' : '<span class="mini-tag gray">常规</span>'}</td><td>${row.id}</td></tr>`).join("") : `<tr><td colspan="5" class="phase2-feature-empty">当前筛选下没有功能点</td></tr>`}</tbody></table></div>
     </div>`;
 }
 
