@@ -154,8 +154,8 @@ let handoffVisibleAnnotations = [];
 let handoffSummaryCapturePage = "";
 const handoffPageSummaryCache = {};
 const featureListStorageKey = "liveAdminFeatureListRows";
-const businessStateStorageKey = "liveAdminBusinessStateV2";
-const businessStateVersion = 2;
+const businessStateStorageKey = "liveAdminBusinessStateV3";
+const businessStateVersion = 3;
 let featureListRows = initialFeatureListRows();
 let featureListFilters = { keyword: "", client: "全部端", module1: "全部模块", phase: "全部阶段", priority: "全部优先级" };
 let changelogView = "timeline";
@@ -243,6 +243,8 @@ let editingShowId = "";
 let robotDetailView = false;
 let robotDetailTab = "scripts";
 let scriptImportPreview = null;
+let batchDistributionDraft = null;
+const resourceDistributions = [];
 
 const executionLogicOptions = [
   ["loop-count", "顺序执行"],
@@ -928,6 +930,61 @@ const customerResourceIds = {
   scripts: new Set(["SCRIPT-005", "SCRIPT-008", "SCRIPT-009"]),
 };
 
+const resourceChannelOverrides = {
+  products: {
+    "700101": "channel-goods",
+    "700102": "channel-goods",
+    "700103": "channel-goods",
+    "800101": "channel-culture",
+    "800102": "channel-culture",
+  },
+  rooms: {
+    "106112": "channel-goods",
+    "106080": "channel-culture",
+    "206176": "channel-culture",
+    "206188": "channel-culture",
+  },
+  robots: {
+    "174": "channel-goods",
+    "142": "channel-life",
+    "RBT002": "channel-culture",
+    "GFWL-001": "channel-culture",
+    "GFWL-002": "channel-culture",
+  },
+  scripts: {
+    "SCRIPT-007": "channel-goods",
+    "SCRIPT-001": "channel-life",
+    "SCRIPT-005": "channel-culture",
+    "SCRIPT-008": "channel-culture",
+    "SCRIPT-009": "channel-culture",
+  },
+  skills: {
+    "GFWL-SKILL-01": "channel-culture",
+    "GFWL-SKILL-02": "channel-culture",
+  },
+  shows: {
+    "GFWL-SHOW-01": "channel-culture",
+    "GFWL-SHOW-02": "channel-culture",
+  },
+  actionGroups: {
+    gufeng_welcome_group: "channel-culture",
+  },
+  faces: {
+    "GFWL-FACE-01": "channel-culture",
+    gufeng_guide_01: "channel-culture",
+  },
+  materials: {
+    "GFWL-MAT-01": "channel-culture",
+  },
+  agents: {
+    "GFWL-AGENT-01": "channel-culture",
+  },
+  maps: {
+    "MAP-B2": "channel-culture",
+    "MAP-GFCITY": "channel-culture",
+  },
+};
+
 function isPlatformChannel() {
   return !window.phase2State || phase2State.isPlatformChannel();
 }
@@ -960,11 +1017,36 @@ function visibleChannelResources(items, resourceType, idField = "id") {
   if (resourceType === "actions") return visiblePlatformActions({ items });
   const allowed = customerResourceIds[resourceType] || new Set();
   const currentChannelId = phase2State?.snapshot().currentChannelId || "channel-weishi";
-  return items.filter((item) => item.channelId ? item.channelId === currentChannelId : (isPlatformChannel() ? !allowed.has(String(item[idField])) : allowed.has(String(item[idField]))));
+  return items.filter((item) => {
+    const itemId = resourceIdentity(item, idField);
+    if (resourceIsDistributedToChannel(resourceType, itemId, currentChannelId)) return true;
+    if (item.channelId) return item.channelId === currentChannelId;
+    return isPlatformChannel() ? !allowed.has(String(itemId)) : allowed.has(String(itemId));
+  });
 }
 
 function currentChannelId() {
   return phase2State?.snapshot().currentChannelId || "channel-weishi";
+}
+
+function resourceIdentity(item, idField = "id") {
+  return String(item?.[idField] ?? item?.id ?? item?.recognitionId ?? "");
+}
+
+function resourceIsDistributedToChannel(resourceType, resourceId, channelId) {
+  if (!resourceType || !resourceId || !channelId) return false;
+  return resourceDistributions.some((item) => item.status === "active"
+    && item.resourceType === resourceType
+    && String(item.resourceId) === String(resourceId)
+    && item.targetChannelId === channelId);
+}
+
+function resourceIsReadonlyDistribution(resourceType, item, idField = "id") {
+  return isCustomerChannel() && resourceIsDistributedToChannel(resourceType, resourceIdentity(item, idField), currentChannelId());
+}
+
+function distributedResourceTag(resourceType, item, idField = "id") {
+  return resourceIsReadonlyDistribution(resourceType, item, idField) ? '<span class="mini-tag blue">平台下发</span>' : "";
 }
 
 function robotAbilityScope(robot) {
@@ -1009,6 +1091,8 @@ function visiblePlatformActions({ robot = null, filters = null, items = actions 
 function resourceChannelId(resourceType, id) {
   const collections = { products, rooms, robots, skills, shows, actionGroups, faces, materials, agents, maps: exhibitionMaps, scripts: scriptFlowScripts };
   const existing = collections[resourceType]?.find((item) => String(item.id) === String(id) || String(item.recognitionId) === String(id));
+  const override = resourceChannelOverrides[resourceType]?.[String(id)] || (existing ? resourceChannelOverrides[resourceType]?.[String(existing.recognitionId)] : "");
+  if (override) return override;
   if (existing?.channelId) return existing.channelId;
   if ((customerResourceIds[resourceType] || new Set()).has(String(id))) return "channel-culture";
   return phase2State?.snapshot().currentChannelId || "channel-weishi";
@@ -1026,7 +1110,7 @@ function initializeChannelMetadata() {
   }));
   actions.forEach((item) => {
     item.channelId = "channel-weishi";
-    if (!Array.isArray(item.channelIds) || !item.channelIds.length) item.channelIds = ["channel-weishi", "channel-culture"];
+    if (!Array.isArray(item.channelIds) || !item.channelIds.length) item.channelIds = ["channel-weishi", "channel-goods", "channel-life", "channel-culture"];
     if (!Array.isArray(item.supportedVersions) || !item.supportedVersions.length) item.supportedVersions = robotVersionOptions.slice();
     if (!Array.isArray(item.abilityScope) || !item.abilityScope.length) item.abilityScope = ["live", "performance", "tour"];
     item.scope = "platform_distributed";
@@ -1088,6 +1172,7 @@ function businessCollectionsSnapshot() {
     userRobotMaterials,
     scriptInlineShows,
     scriptProductBindings,
+    resourceDistributions,
   };
 }
 
@@ -1179,7 +1264,7 @@ function onPhase2ChannelChanged() {
 function renderChannelAccessBanner() {
   if (["live-dashboard", "ops-dashboard"].includes(activePage) || !window.phase2State) return "";
   const channel = phase2State.currentChannel();
-  return `<div class="channel-access-banner ${channel.type}"><strong>${escapeHtml(channel.name)}${handoffMark("渠道数据隔离边界", "本次二期新增平台/客户渠道边界：业务数据按当前渠道过滤，平台下发资源只读，机器人私有资源只在本机器人上下文内使用。", "new")}</strong><span>${channel.type === "platform" ? "平台渠道：管理平台资源并向客户下发；可通过渠道选择器切换管理各客户渠道。" : "客户渠道：仅显示本渠道公共资源和本渠道机器人私有资源；平台下发资源只读。"}</span></div>`;
+  return `<div class="channel-access-banner ${channel.type}"><strong>${escapeHtml(channel.name)}${handoffMark("渠道数据隔离边界", "本次二期新增平台/客户渠道边界：业务数据按当前渠道过滤，平台下发资源只读，机器人私有资源只在本机器人上下文内使用。", "new")}</strong><span>${channel.type === "platform" ? "微视中国：平台最高权限，维护平台资源大库并向客户渠道下发。" : "客户渠道模拟：仅显示本渠道公共资源、本渠道机器人私有资源和平台已下发资源；平台下发资源只读。"}</span></div>`;
 }
 
 function pageRenderers() {
@@ -5081,21 +5166,22 @@ function renderSkillPage() {
         </thead>
         <tbody>
           ${visibleSkills
-            .map(
-              (skill) => `
+            .map((skill) => {
+              const readonly = resourceIsReadonlyDistribution("skills", skill);
+              return `
               <tr>
                 <td>${skill.id}</td>
-                <td class="left"><strong>${skill.name}</strong></td>
+                <td class="left"><strong>${skill.name}</strong> ${distributedResourceTag("skills", skill)}</td>
                 <td>${skill.category}</td>
                 <td>${skill.owner}</td>
                 <td><span class="tag">${skill.trigger}</span></td>
                 <td><span class="tag">${skill.result}</span></td>
                 <td><button class="switch-button ${skill.status ? "on" : ""}" type="button" onclick="toggleSkillStatus('${escapeJs(skill.id)}')"><span></span></button></td>
                 <td>${skill.created}</td>
-                <td><button class="link" onclick="openSkillModal('${skill.name}')">编辑</button> | <button class="link danger" onclick="deleteSkill('${escapeJs(skill.id)}')">删除</button></td>
+                <td>${readonly ? '<span class="readonly-resource-note">已下发 · 只读</span>' : `<button class="link" onclick="openSkillModal('${skill.name}')">编辑</button> | <button class="link danger" onclick="deleteSkill('${escapeJs(skill.id)}')">删除</button>`}</td>
               </tr>
-            `,
-            )
+            `;
+            })
             .join("")}
         </tbody>
       </table>
@@ -5161,19 +5247,20 @@ function renderShowPage() {
         </thead>
         <tbody>
           ${publicShows
-            .map(
-              (show) => `
+            .map((show) => {
+              const readonly = resourceIsReadonlyDistribution("shows", show);
+              return `
               <tr>
                 <td>${show.id}</td>
-                <td class="left"><strong>${show.name}</strong></td>
+                <td class="left"><strong>${show.name}</strong> ${distributedResourceTag("shows", show)}</td>
                 <td>${show.owner}</td>
                 <td>${show.units}</td>
                 <td><button class="switch-button ${show.status ? "on" : ""}" type="button" onclick="toggleShowStatus('${escapeJs(show.id)}')"><span></span></button></td>
                 <td>${show.created}</td>
-                <td><button class="link" onclick="openShowModal('${show.name}', true)">编辑</button> | <button class="link danger" onclick="deleteShow('${escapeJs(show.id)}')">删除</button></td>
+                <td>${readonly ? '<span class="readonly-resource-note">已下发 · 只读</span>' : `<button class="link" onclick="openShowModal('${show.name}', true)">编辑</button> | <button class="link danger" onclick="deleteShow('${escapeJs(show.id)}')">删除</button>`}</td>
               </tr>
-            `,
-            )
+            `;
+            })
             .join("")}
         </tbody>
       </table>
@@ -5324,7 +5411,7 @@ function renderActionGroupList() {
 
 function renderFacePage() {
   const keyword = faceFilters.keyword.trim().toLowerCase();
-  const visibleFaces = visibleChannelResources(faces, "faces")
+  const visibleFaces = visibleChannelResources(faces, "faces", "recognitionId")
     .filter((face) => !keyword || [face.id, face.recognitionId, face.name, face.nickname].join(" ").toLowerCase().includes(keyword))
     .filter((face) => faceFilters.source === "请选择来源" || face.source === faceFilters.source);
   return `
@@ -5823,36 +5910,280 @@ function saveAgentModal(agentId = "") {
 }
 
 function openResourceBatchDistribute(type) {
-  const config = resourceBatchConfig(type);
-  const source = config.source();
-  openModal(`
-    <div class="modal large">
-      <div class="modal-header"><div class="modal-title">批量下发机器人</div><button class="modal-close" onclick="closeModal()">×</button></div>
-      <div class="modal-body">
-        <div class="batch-grid">
-          <div>
-            <div class="batch-panel-header">已选${config.label}（0）<input class="input" placeholder="搜索${config.label}" /></div>
-            <div class="batch-panel">${source.slice(0, 8).map((item) => `<div class="batch-row"><input type="checkbox" /><span>${item.id || item.recognitionId}</span><span>${item.name || item.fileName}</span><span>${item.posture || item.source || item.tag || ""}</span></div>`).join("")}</div>
-          </div>
-          <div>
-            <div class="batch-panel-header">已选机器人（0）<input class="input" placeholder="搜索机器人" /></div>
-            <div class="batch-panel">${robots.slice(0, 9).map((robot) => `<div class="batch-row"><input type="checkbox" /><span>${robot.id}</span><span>${robot.name}</span><span>${robot.version}</span></div>`).join("")}</div>
-          </div>
-        </div>
-      </div>
-      <div class="modal-footer"><button class="btn secondary" onclick="closeModal()">取消</button><button class="btn" onclick="closeModal();toast('${config.label}已一键下发')">一键下发</button></div>
-    </div>
-  `);
+  openBatchDistributionModal(type);
 }
 
 function resourceBatchConfig(type) {
   const configs = {
-    actions: { label: "动作", source: () => actions },
-    actionGroups: { label: "动作组", source: () => actionGroups },
-    faces: { label: "视觉", source: () => faces },
-    materials: { label: "素材", source: () => materials },
+    skills: { label: "技能", title: "技能批量下发", placeholder: "ID/技能名称", source: () => visibleChannelResources(skills, "skills"), bindField: "skillIds" },
+    shows: { label: "表演", title: "表演批量下发", placeholder: "ID/表演名称", source: () => visibleChannelResources(shows, "shows").filter((show) => show.owner === "公共模板"), bindField: "showIds" },
+    actions: { label: "动作", title: "动作批量下发", placeholder: "ID/动作名称", source: () => actions, bindField: "actionIds" },
+    actionGroups: { label: "动作组", title: "动作组批量下发", placeholder: "ID/动作组名称", source: () => visibleChannelResources(actionGroups, "actionGroups"), bindField: "actionGroupIds" },
+    faces: { label: "视觉", title: "视觉批量下发", placeholder: "名称/识别人ID", source: () => visibleChannelResources(faces, "faces", "recognitionId"), bindField: "faceIds", idField: "recognitionId" },
+    materials: { label: "素材", title: "素材批量下发", placeholder: "音频名称/标签", source: () => visibleChannelResources(materials, "materials"), bindField: "materialIds" },
+    agents: { label: "智能体", title: "智能体批量下发", placeholder: "ID/智能体名称", source: () => visibleChannelResources(agents, "agents"), bindField: "agentIds" },
   };
-  return configs[type] || configs.actions;
+  return configs[type] || configs.skills;
+}
+
+function openBatchDistributionModal(type) {
+  const config = resourceBatchConfig(type);
+  const source = config.source();
+  const customerChannels = distributionTargetChannels();
+  batchDistributionDraft = {
+    type,
+    mode: "channel",
+    resourceKeyword: "",
+    robotKeyword: "",
+    robotMode: "全部场景",
+    robotVersion: "全部版本",
+    selectedResourceIds: source.slice(0, 1).map((item) => resourceIdentity(item, config.idField)),
+    selectedChannelIds: customerChannels.slice(0, 1).map((item) => item.id),
+    selectedRobotIds: [],
+  };
+  renderBatchDistributionModal();
+}
+
+function distributionTargetChannels() {
+  const channels = window.phase2State?.channels || [];
+  const customerChannels = channels.filter((channel) => channel.type === "customer");
+  return customerChannels.length ? customerChannels : channels.filter((channel) => channel.id !== currentChannelId());
+}
+
+function batchDistributionSource() {
+  if (!batchDistributionDraft) return [];
+  const config = resourceBatchConfig(batchDistributionDraft.type);
+  const keyword = batchDistributionDraft.resourceKeyword.trim().toLowerCase();
+  return config.source().filter((item) => {
+    const text = [resourceIdentity(item, config.idField), item.name, item.fileName, item.owner, item.category, item.trigger, item.tag].join(" ").toLowerCase();
+    return !keyword || text.includes(keyword);
+  });
+}
+
+function batchDistributionRobots() {
+  if (!batchDistributionDraft) return [];
+  const keyword = batchDistributionDraft.robotKeyword.trim().toLowerCase();
+  const channelIds = batchDistributionDraft.selectedChannelIds;
+  return robots
+    .filter((robot) => !channelIds.length || channelIds.includes(resourceChannelId("robots", robot.id)))
+    .filter((robot) => batchDistributionDraft.robotMode === "全部场景" || robot.mode === batchDistributionDraft.robotMode)
+    .filter((robot) => batchDistributionDraft.robotVersion === "全部版本" || robot.version === batchDistributionDraft.robotVersion)
+    .filter((robot) => {
+      const text = [robot.id, robot.name, robot.mode, robot.version].join(" ").toLowerCase();
+      return !keyword || text.includes(keyword);
+    });
+}
+
+function renderBatchDistributionModal() {
+  if (!batchDistributionDraft) return;
+  const config = resourceBatchConfig(batchDistributionDraft.type);
+  const source = batchDistributionSource();
+  const targetChannels = distributionTargetChannels();
+  const targetRobots = batchDistributionRobots();
+  const selectedResourceCount = batchDistributionDraft.selectedResourceIds.length;
+  const selectedRobotCount = batchDistributionDraft.selectedRobotIds.length;
+  const selectedChannelNames = targetChannels
+    .filter((channel) => batchDistributionDraft.selectedChannelIds.includes(channel.id))
+    .map((channel) => channel.name)
+    .join("、") || "未选择渠道";
+  openModal(`
+    <div class="modal large distribution-modal">
+      <div class="modal-header">
+        <div class="modal-title">${config.title}</div>
+        <button class="modal-close" onclick="closeModal()">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="distribution-grid">
+          <div class="distribution-column">
+            <div class="batch-panel">
+              <div class="batch-panel-header">
+                <span>选择${config.label}（${selectedResourceCount}）</span>
+                <input class="input" value="${escapeHtml(batchDistributionDraft.resourceKeyword)}" placeholder="${config.placeholder}" oninput="setBatchDistributionField('resourceKeyword', this.value)" />
+              </div>
+              <div class="batch-panel distribution-list">
+                ${source.length ? source.slice(0, 10).map((item) => {
+                  const id = resourceIdentity(item, config.idField);
+                  return `
+                    <label class="batch-row distribution-row ${String(item.name || item.fileName || "").length > 24 ? "tall" : ""}">
+                      <input type="checkbox" ${batchDistributionDraft.selectedResourceIds.includes(id) ? "checked" : ""} onchange="toggleBatchDistributionResource('${escapeJs(id)}', this.checked)" />
+                      <span>${escapeHtml(id)}</span>
+                      <span>${escapeHtml(item.name || item.fileName || "-")}</span>
+                      <span>${escapeHtml(item.owner || item.category || item.posture || item.source || item.tag || "")}</span>
+                    </label>
+                  `;
+                }).join("") : `<div class="empty-state compact">没有匹配的${config.label}</div>`}
+              </div>
+            </div>
+          </div>
+          <div class="distribution-column">
+            <div class="distribution-card">
+              <div class="distribution-section-title">下发方式</div>
+              <div class="segmented-control">
+                ${["channel", "robot"].map((mode) => `<button class="${batchDistributionDraft.mode === mode ? "active" : ""}" type="button" onclick="setBatchDistributionField('mode', '${mode}')">${mode === "channel" ? "下发到渠道" : "下发到指定机器人"}</button>`).join("")}
+              </div>
+            </div>
+            <div class="distribution-card">
+              <div class="distribution-section-title">目标渠道</div>
+              <div class="distribution-channel-list">
+                ${targetChannels.map((channel) => `
+                  <label class="distribution-check">
+                    <input type="checkbox" ${batchDistributionDraft.selectedChannelIds.includes(channel.id) ? "checked" : ""} onchange="toggleBatchDistributionChannel('${escapeJs(channel.id)}', this.checked)" />
+                    <span><strong>${escapeHtml(channel.name)}</strong><em>${escapeHtml(channel.roleLabel || "客户渠道")}</em></span>
+                  </label>
+                `).join("")}
+              </div>
+            </div>
+            <div class="distribution-card ${batchDistributionDraft.mode === "robot" ? "" : "muted"}">
+              <div class="distribution-section-title">机器人筛选</div>
+              <div class="distribution-filters">
+                <input class="input" value="${escapeHtml(batchDistributionDraft.robotKeyword)}" placeholder="搜索机器人" oninput="setBatchDistributionField('robotKeyword', this.value)" />
+                <select class="select" onchange="setBatchDistributionField('robotMode', this.value)">${["全部场景", "直播", "表演", "导览"].map((value) => `<option ${batchDistributionDraft.robotMode === value ? "selected" : ""}>${value}</option>`).join("")}</select>
+                <select class="select" onchange="setBatchDistributionField('robotVersion', this.value)">${["全部版本", ...robotVersionOptions].map((value) => `<option ${batchDistributionDraft.robotVersion === value ? "selected" : ""}>${value}</option>`).join("")}</select>
+              </div>
+              <div class="distribution-robot-list">
+                ${targetRobots.length ? targetRobots.slice(0, 8).map((robot) => `
+                  <label class="batch-row distribution-row robot-row">
+                    <input type="checkbox" ${batchDistributionDraft.mode === "robot" ? "" : "disabled"} ${batchDistributionDraft.selectedRobotIds.includes(String(robot.id)) ? "checked" : ""} onchange="toggleBatchDistributionRobot('${escapeJs(robot.id)}', this.checked)" />
+                    <span>${escapeHtml(robot.id)}</span>
+                    <span>${escapeHtml(robot.name)}</span>
+                    <span>${escapeHtml(robot.version)}</span>
+                  </label>
+                `).join("") : `<div class="empty-state compact">当前渠道下没有匹配机器人</div>`}
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="distribution-summary">
+          <strong>下发预览</strong>
+          <span>${selectedResourceCount} 个${config.label} · ${selectedChannelNames}${batchDistributionDraft.mode === "robot" ? ` · ${selectedRobotCount} 台机器人` : " · 渠道内可引用"}</span>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn secondary" onclick="closeModal()">取消</button>
+        <button class="btn" onclick="saveBatchDistribution()">确认下发</button>
+      </div>
+    </div>
+  `);
+}
+
+function setBatchDistributionField(key, value) {
+  if (!batchDistributionDraft) return;
+  batchDistributionDraft[key] = value;
+  if (key === "mode" && value === "channel") batchDistributionDraft.selectedRobotIds = [];
+  renderBatchDistributionModal();
+}
+
+function toggleBatchDistributionResource(resourceId, checked) {
+  if (!batchDistributionDraft) return;
+  toggleValue(batchDistributionDraft.selectedResourceIds, resourceId, checked);
+  renderBatchDistributionModal();
+}
+
+function toggleBatchDistributionChannel(channelId, checked) {
+  if (!batchDistributionDraft) return;
+  toggleValue(batchDistributionDraft.selectedChannelIds, channelId, checked);
+  const allowedChannels = new Set(batchDistributionDraft.selectedChannelIds);
+  batchDistributionDraft.selectedRobotIds = batchDistributionDraft.selectedRobotIds.filter((robotId) => {
+    const robot = robots.find((item) => String(item.id) === String(robotId));
+    return robot && allowedChannels.has(resourceChannelId("robots", robot.id));
+  });
+  renderBatchDistributionModal();
+}
+
+function toggleBatchDistributionRobot(robotId, checked) {
+  if (!batchDistributionDraft) return;
+  toggleValue(batchDistributionDraft.selectedRobotIds, String(robotId), checked);
+  renderBatchDistributionModal();
+}
+
+function toggleValue(values, value, checked) {
+  const text = String(value);
+  const exists = values.includes(text);
+  if (checked && !exists) values.push(text);
+  if (!checked && exists) values.splice(values.indexOf(text), 1);
+}
+
+function saveBatchDistribution() {
+  if (!batchDistributionDraft) return;
+  const config = resourceBatchConfig(batchDistributionDraft.type);
+  const selectedResourceIds = [...new Set(batchDistributionDraft.selectedResourceIds)];
+  const selectedChannelIds = [...new Set(batchDistributionDraft.selectedChannelIds)];
+  const selectedRobotIds = batchDistributionDraft.mode === "robot" ? [...new Set(batchDistributionDraft.selectedRobotIds)] : [];
+  if (!selectedResourceIds.length) {
+    toast(`请至少选择一个${config.label}`);
+    return;
+  }
+  if (!selectedChannelIds.length) {
+    toast("请至少选择一个目标渠道");
+    return;
+  }
+  if (batchDistributionDraft.mode === "robot" && !selectedRobotIds.length) {
+    toast("请至少选择一台目标机器人");
+    return;
+  }
+  selectedResourceIds.forEach((resourceId) => {
+    selectedChannelIds.forEach((channelId) => {
+      const channelRobotIds = selectedRobotIds.filter((robotId) => resourceChannelId("robots", robotId) === channelId);
+      if (batchDistributionDraft.mode === "robot" && !channelRobotIds.length) return;
+      upsertResourceDistribution({
+        resourceType: batchDistributionDraft.type,
+        resourceId,
+        sourceChannelId: currentChannelId(),
+        targetChannelId: channelId,
+        targetRobotIds: channelRobotIds,
+        targetType: batchDistributionDraft.mode,
+      });
+    });
+  });
+  applyRobotResourceBindings(batchDistributionDraft.type, selectedResourceIds, selectedRobotIds, config.bindField);
+  applyChannelResourceVisibility(batchDistributionDraft.type, selectedResourceIds, selectedChannelIds);
+  saveBusinessState();
+  const resourceCount = selectedResourceIds.length;
+  const targetCount = batchDistributionDraft.mode === "robot" ? selectedRobotIds.length : selectedChannelIds.length;
+  batchDistributionDraft = null;
+  closeModal();
+  renderApp();
+  toast(`${config.label}已下发：${resourceCount} 个资源，${targetCount} 个${selectedRobotIds.length ? "机器人" : "渠道"}`);
+}
+
+function upsertResourceDistribution(next) {
+  const existing = resourceDistributions.find((item) => item.resourceType === next.resourceType
+    && String(item.resourceId) === String(next.resourceId)
+    && item.targetChannelId === next.targetChannelId
+    && item.targetType === next.targetType);
+  const payload = {
+    ...next,
+    id: existing?.id || `DIST-${Date.now()}-${Math.random().toString(16).slice(2, 6)}`,
+    status: "active",
+    deployedAt: formatLocalTimestamp(new Date()),
+  };
+  if (existing) Object.assign(existing, payload);
+  else resourceDistributions.unshift(payload);
+}
+
+function applyRobotResourceBindings(resourceType, resourceIds, robotIds, bindField) {
+  if (!bindField || !robotIds.length) return;
+  robotIds.forEach((robotId) => {
+    const robot = robots.find((item) => String(item.id) === String(robotId));
+    if (!robot) return;
+    if (!Array.isArray(robot[bindField])) robot[bindField] = [];
+    resourceIds.forEach((resourceId) => {
+      if (!robot[bindField].some((item) => String(item) === String(resourceId))) robot[bindField].push(resourceId);
+    });
+    if (resourceType === "skills") robot.keywords = robot[bindField].length;
+    if (resourceType === "shows") robot.scripts = robotAssignedScripts(robot).length;
+  });
+}
+
+function applyChannelResourceVisibility(resourceType, resourceIds, channelIds) {
+  if (resourceType !== "actions") return;
+  actions.forEach((action) => {
+    if (!resourceIds.includes(String(action.id))) return;
+    if (!Array.isArray(action.channelIds)) action.channelIds = [];
+    channelIds.forEach((channelId) => {
+      if (!action.channelIds.includes(channelId)) action.channelIds.push(channelId);
+    });
+  });
 }
 
 function formInputWithId(id, label, placeholder, required = false, value = "", suffix = "") {
@@ -7842,62 +8173,7 @@ function openActionPicker(index, showName = "四位一体讲解", edit = true, r
 }
 
 function openBatchModal(type) {
-  const isSkill = type === "skills";
-  const left = isSkill ? skills : shows;
-  const title = isSkill ? "已选技能" : "已选表演";
-  const placeholder = isSkill ? "ID/技能名称" : "ID/表演名称";
-  openModal(`
-    <div class="modal large">
-      <div class="modal-header">
-        <div class="modal-title">${isSkill ? "技能批量下发" : "表演批量下发"}</div>
-        <button class="modal-close" onclick="closeModal()">×</button>
-      </div>
-      <div class="modal-body">
-        <div class="batch-grid">
-          <div>
-            <div class="batch-panel-header">${title} (0)<input class="input" placeholder="${placeholder}" /></div>
-            <div class="batch-panel">
-              ${left
-                .slice(0, 6)
-                .map(
-                  (item) => `
-                  <div class="batch-row ${String(item.name).length > 24 ? "tall" : ""}">
-                    <input type="checkbox" />
-                    <span>${item.id}</span>
-                    <span>${item.name}</span>
-                    <span>${item.owner || item.category}</span>
-                  </div>
-                `,
-                )
-                .join("")}
-            </div>
-          </div>
-          <div>
-            <div class="batch-panel-header">已选机器人 (0)<input class="input" placeholder="搜索机器人" /></div>
-            <div class="batch-panel">
-              ${robots
-                .slice(0, 8)
-                .map(
-                  (robot) => `
-                  <div class="batch-row">
-                    <input type="checkbox" />
-                    <span>${robot.id}</span>
-                    <span>${robot.name}</span>
-                    <span>${robot.version}</span>
-                  </div>
-                `,
-                )
-                .join("")}
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn secondary" onclick="closeModal()">取消</button>
-        <button class="btn" onclick="closeModal();toast('${isSkill ? "技能" : "表演"}已一键下发')">一键下发</button>
-      </div>
-    </div>
-  `);
+  openBatchDistributionModal(type);
 }
 
 function buildTemplateStages(anchorId, durations) {

@@ -30,8 +30,8 @@
           <button class="icon-button" type="button" aria-label="折叠菜单" onclick="toggleSidebar()">☰</button>
           <div class="breadcrumb">Dashboard <span>/</span> <span id="breadcrumbModule">虚拟直播管理</span> <span>/</span> <strong id="breadcrumbPage">机器人管理</strong></div>
           <div class="top-actions">
-            <label class="channel-switcher"><span>当前渠道</span><select id="channelSelector" onchange="phase2State.setChannel(this.value)"><option value="channel-weishi">微视中国（平台）</option><option value="channel-culture">国风文旅（客户）</option></select></label>
-            <span class="channel-role" id="channelRole">平台渠道 · 最高权限</span>
+            <label class="channel-switcher"><span>当前渠道</span><select id="channelSelector" onchange="phase2State.setChannel(this.value)"><option value="channel-weishi">微视中国（平台最高权限）</option><option value="channel-goods">国风好物（客户渠道模拟）</option><option value="channel-life">星球生活（客户渠道模拟）</option><option value="channel-culture">国风文旅（客户渠道模拟）</option></select></label>
+            <span class="channel-role" id="channelRole">平台最高权限</span>
             <button class="btn secondary top-reset-button" type="button" onclick="phase2State.reset()">重置演示数据</button>
             <button id="handoffToggle" class="handoff-toggle" type="button" onclick="toggleHandoffMode()">交付标注</button>
             <button class="notify" type="button">♜<span></span></button>

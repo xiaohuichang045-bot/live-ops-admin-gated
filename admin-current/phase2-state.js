@@ -1,15 +1,17 @@
 (function createPhase2State(global) {
   "use strict";
 
-  const storageKey = "liveAdminPhase2StateV1";
+  const storageKey = "liveAdminPhase2StateV2";
   const channels = [
-    { id: "channel-weishi", name: "微视中国", type: "platform", authority: "platform_admin", level: 100, roleLabel: "平台渠道 · 最高权限" },
-    { id: "channel-culture", name: "国风文旅", type: "customer", authority: "tenant_admin", level: 10, parentId: "channel-weishi", roleLabel: "客户渠道" },
+    { id: "channel-weishi", name: "微视中国", type: "platform", authority: "platform_admin", level: 100, roleLabel: "平台最高权限" },
+    { id: "channel-goods", name: "国风好物", type: "customer", authority: "tenant_admin", level: 10, parentId: "channel-weishi", roleLabel: "客户渠道模拟" },
+    { id: "channel-life", name: "星球生活", type: "customer", authority: "tenant_admin", level: 10, parentId: "channel-weishi", roleLabel: "客户渠道模拟" },
+    { id: "channel-culture", name: "国风文旅", type: "customer", authority: "tenant_admin", level: 10, parentId: "channel-weishi", roleLabel: "客户渠道模拟" },
   ];
   const rooms = {
     "106176": { robotId: "DT-LIVE-001", robotName: "星栖", channelId: "channel-weishi" },
-    "106188": { robotId: "DT-LIVE-002", robotName: "知鹤", channelId: "channel-weishi" },
-    "106203": { robotId: "DT-LIVE-003", robotName: "小暖", channelId: "channel-weishi" },
+    "106188": { robotId: "DT-LIVE-002", robotName: "知鹤", channelId: "channel-goods" },
+    "106203": { robotId: "DT-LIVE-003", robotName: "小暖", channelId: "channel-life" },
     "206176": { robotId: "GFWL-001", robotName: "绛央", channelId: "channel-culture" },
     "206188": { robotId: "GFWL-002", robotName: "青禾", channelId: "channel-culture" },
   };
@@ -50,7 +52,7 @@
 
   function initialState() {
     return {
-      version: 1,
+      version: 2,
       currentChannelId: "channel-weishi",
       recordings: seedRecordings(),
       videoStates: Object.fromEntries(
@@ -64,7 +66,7 @@
   function load() {
     try {
       const parsed = JSON.parse(global.localStorage.getItem(storageKey) || "null");
-      if (parsed?.version === 1) return parsed;
+      if (parsed?.version === 2) return parsed;
     } catch (error) {
       console.warn("phase2 state restore failed", error);
     }
