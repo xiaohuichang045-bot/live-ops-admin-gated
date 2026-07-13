@@ -2485,28 +2485,27 @@ function renderChangelogPage() {
   const versions = prototypeVersions();
   const visibleVersions = filteredPrototypeVersions(versions);
   const stats = changelogStats(versions);
+  const current = versions.find((version) => version.current) || versions[0];
   return `
     <div class="changelog-page">
-      <section class="changelog-head changelog-hero">
+      <section class="changelog-head changelog-hero changelog-clean-head">
         <div>
-          <span class="changelog-kicker">版本交付中心</span>
           <h1>更新日志</h1>
-          <p>按版本时间线展示交付范围，支持查看功能清单、打开该版本完整原型，并一键进入交付标注检查。</p>
+          <p>当前只展示版本交付记录和关键入口，详细功能点进入清单页查看。</p>
+          <div class="changelog-clean-meta">
+            <span>当前版本：${escapeHtml(current?.title || "-")}</span>
+            <span>${stats.currentFeatureCount} 项功能</span>
+            <span>${stats.annotationCount} 条交付标注</span>
+          </div>
         </div>
         <div class="changelog-actions">
           <button class="btn secondary" type="button" onclick="enableHandoffAnnotations()">开启交付标注</button>
           <button class="btn" type="button" onclick="openChangelogFeatureList('phase2')">查看当前功能清单</button>
         </div>
       </section>
-      <section class="feature-summary-grid changelog-overview">
-        ${summaryCard("版本数量", stats.totalVersions, "blue")}
-        ${summaryCard("当前版本", stats.currentTitle, "green")}
-        ${summaryCard("当前功能点", stats.currentFeatureCount, "red")}
-        ${summaryCard("交付标注", stats.annotationCount, "gray")}
-      </section>
-      <section class="changelog-toolbar">
+      <section class="changelog-toolbar changelog-clean-toolbar">
         <div>
-          <strong>版本时间线</strong>
+          <strong>版本记录</strong>
           <span>${visibleVersions.length} / ${versions.length} 个版本</span>
         </div>
         <div class="changelog-status-tabs">
@@ -2520,30 +2519,35 @@ function renderChangelogPage() {
 }
 
 function renderPrototypeVersionCard(version) {
-  const mark = version.id === "v2.0" ? handoffMark("二期开发标注总览", "本次交付标注按二期优化核心需求重排，聚焦直播异常兜底、脚本编辑与预览、机器人脚本管理、机器人运维大屏、渠道隔离与平台下发。", "info") : "";
   const featureCount = version.featureView === "phase2" ? phase2FeatureRows.length : featureListRows.length;
   const focusCount = version.featureView === "phase2" ? phase2FeatureRows.filter((row) => row.focus).length : featureListRows.filter((row) => row.priority === "高").length;
   const actionLabel = version.current ? "当前开发版" : "历史发布版";
-  const summaryMarkup = version.summaryItems.length > 1
-    ? `<ul>${version.summaryItems.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>`
-    : `<p>${escapeHtml(version.summaryItems[0] || "")}</p>`;
+  const highlightLimit = version.current ? 3 : 1;
+  const highlights = version.summaryItems.slice(0, highlightLimit);
+  const moreCount = Math.max(0, version.summaryItems.length - highlightLimit);
   return `
-    <article class="release-card ${version.current ? "current" : ""}">
-      <div class="release-dot"></div>
-      <div>
+    <article class="release-card release-card-clean ${version.current ? "current" : ""}">
+      <div class="release-date-block">
+        <strong>${escapeHtml(version.date)}</strong>
+        <span class="${escapeHtml(version.statusClass)}">${escapeHtml(version.status)}</span>
+      </div>
+      <div class="release-main">
         <div class="release-card-head">
-          <div class="release-meta"><strong>${escapeHtml(version.title)}${mark}</strong><span>${escapeHtml(version.date)}</span><em class="${escapeHtml(version.statusClass)}">${escapeHtml(version.status)}</em></div>
+          <div>
+            <h2>${escapeHtml(version.title)}</h2>
+            <p class="release-headline">${escapeHtml(version.headline)}</p>
+          </div>
           <span class="mini-tag ${version.current ? "blue" : "green"}">${actionLabel}</span>
         </div>
-        <h2>${escapeHtml(version.headline)}</h2>
-        <div class="release-stats">
-          <span><b>${featureCount}</b> 功能点</span>
-          <span><b>${focusCount}</b> 重点项</span>
-          <span><b>${version.featureView === "phase2" ? phase2FocusRows.length : 1}</b> 交付主线</span>
+        <ul class="release-highlights">
+          ${highlights.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}
+          ${moreCount ? `<li class="muted">另 ${moreCount} 项进入功能清单查看</li>` : ""}
+        </ul>
+        <div class="release-card-foot">
+          <span>${featureCount} 功能点</span>
+          <span>${focusCount} 重点项</span>
+          <span>${version.featureView === "phase2" ? phase2FocusRows.length : 1} 条主线</span>
         </div>
-        <div class="release-summary"><strong>更新摘要</strong>${summaryMarkup}</div>
-        <p>${escapeHtml(version.detail)}</p>
-        <p class="release-annotation-source">标注文件：${escapeHtml(version.annotationSource)}</p>
         <div class="release-actions">
           <button class="btn" type="button" onclick="openChangelogFeatureList('${escapeHtml(version.featureView)}')">查看功能清单</button>
           <button class="btn secondary" type="button" onclick="openPrototypeVersion('${escapeHtml(version.id)}')">查看该版本原型</button>
