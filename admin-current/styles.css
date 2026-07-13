@@ -651,8 +651,13 @@ button {
   background: #1677ff;
   color: #fff;
   box-shadow: 0 8px 20px rgb(22 119 255 / 30%);
-  cursor: pointer;
+  cursor: grab;
+  touch-action: none;
   transition: background 0.15s, box-shadow 0.15s, transform 0.15s;
+}
+
+.handoff-fab-control.dragging .handoff-fab {
+  cursor: grabbing;
 }
 
 .handoff-fab:hover,
@@ -715,6 +720,25 @@ button {
   opacity: 1;
   pointer-events: auto;
   transform: translateY(-50%) translateX(0) scale(1);
+}
+
+.handoff-fab-control.panel-above .handoff-floating-panel {
+  top: auto;
+  bottom: 56px;
+  transform: translateX(10px) scale(0.98);
+  transform-origin: right bottom;
+}
+
+.handoff-fab-control.panel-below .handoff-floating-panel {
+  top: 56px;
+  bottom: auto;
+  transform: translateX(10px) scale(0.98);
+  transform-origin: right top;
+}
+
+.handoff-fab-control.open.panel-above .handoff-floating-panel,
+.handoff-fab-control.open.panel-below .handoff-floating-panel {
+  transform: translateX(0) scale(1);
 }
 
 .handoff-fab-head {
@@ -819,6 +843,35 @@ button {
   padding: 0 14px 12px;
 }
 
+.handoff-fab-current-list {
+  padding: 0 14px 12px;
+}
+
+.handoff-fab-list-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 0 8px;
+  color: #344054;
+  font-size: 12px;
+}
+
+.handoff-fab-list-title span {
+  color: #7a8696;
+}
+
+.handoff-fab-current-list .handoff-panel-list {
+  max-height: min(220px, calc(100vh - 356px));
+}
+
+.handoff-fab-current-list .handoff-list-item {
+  padding: 7px;
+}
+
+.handoff-fab-current-list .handoff-visible-empty {
+  padding: 12px 6px 4px;
+}
+
 .handoff-fab-action,
 .handoff-fab-more-actions button {
   min-height: 34px;
@@ -898,6 +951,17 @@ button {
   }
 
   .handoff-fab-control.open .handoff-floating-panel {
+    transform: translateY(0) scale(1);
+  }
+
+  .handoff-fab-control.panel-below .handoff-floating-panel {
+    top: 56px;
+    bottom: auto;
+    transform: translateY(8px) scale(0.98);
+    transform-origin: right top;
+  }
+
+  .handoff-fab-control.open.panel-below .handoff-floating-panel {
     transform: translateY(0) scale(1);
   }
 }

@@ -85,6 +85,7 @@ const handoffAnnotationProjectUrl = "handoff-annotations.json";
 const handoffAnnotationStorageKey = "liveAdminHandoffAnnotations";
 const handoffAnnotationProjectCacheKey = "liveAdminHandoffProjectAnnotations";
 const handoffPanelPositionStorageKey = "liveAdminHandoffPanelPosition";
+const handoffFabPositionStorageKey = "liveAdminHandoffFabPosition";
 if (typeof window !== "undefined") window.localStorage?.removeItem(handoffPanelPositionStorageKey);
 let handoffProjectAnnotations = initialHandoffProjectAnnotations();
 let handoffLocalAnnotations = initialHandoffAnnotations();
@@ -149,7 +150,10 @@ const archivedHandoffAnnotationKeys = new Set([
 ]);
 let handoffPlacementMode = false;
 let handoffPlacementScope = "auto";
-let handoffPanelOpen = false;
+let handoffFabPosition = initialHandoffFabPosition();
+let handoffFabDrag = null;
+let handoffFabSuppressClick = false;
+let handoffPanelOpen = handoffMode;
 let handoffAdvancedOpen = false;
 let activeHandoffKey = "";
 let handoffVisibleAnnotations = [];
@@ -1344,8 +1348,57 @@ function initialHandoffMode() {
   return window.localStorage?.getItem("handoffMode") === "1";
 }
 
+function initialHandoffFabPosition() {
+  if (typeof window === "undefined") return null;
+  try {
+    const saved = JSON.parse(window.localStorage?.getItem(handoffFabPositionStorageKey) || "null");
+    const top = Number(saved?.top);
+    return Number.isFinite(top) ? { top } : null;
+  } catch {
+    window.localStorage?.removeItem(handoffFabPositionStorageKey);
+    return null;
+  }
+}
+
+function clampHandoffFabTop(top) {
+  const size = 44;
+  const margin = 12;
+  return Math.min(Math.max(top, margin), Math.max(margin, window.innerHeight - size - margin));
+}
+
+function saveHandoffFabPosition() {
+  if (typeof window === "undefined") return;
+  if (!handoffFabPosition) {
+    window.localStorage?.removeItem(handoffFabPositionStorageKey);
+    return;
+  }
+  window.localStorage?.setItem(handoffFabPositionStorageKey, JSON.stringify(handoffFabPosition));
+}
+
+function applyHandoffFabPosition(control) {
+  if (!control || !handoffFabPosition) return;
+  const top = clampHandoffFabTop(handoffFabPosition.top);
+  handoffFabPosition = { top };
+  control.style.top = `${top}px`;
+  control.style.bottom = "auto";
+  control.style.transform = "none";
+  syncHandoffFabPanelPlacement(control);
+}
+
+function handoffFabPanelPlacement() {
+  if (!handoffFabPosition) return "center";
+  return handoffFabPosition.top < window.innerHeight / 2 ? "below" : "above";
+}
+
+function syncHandoffFabPanelPlacement(control) {
+  if (!control) return;
+  control.classList.remove("panel-center", "panel-above", "panel-below");
+  control.classList.add(`panel-${handoffFabPanelPlacement()}`);
+}
+
 function setHandoffMode(nextMode) {
   handoffMode = Boolean(nextMode);
+  if (handoffMode) handoffPanelOpen = true;
   if (!handoffMode) {
     activeHandoffKey = "";
     stopHandoffPlacement();
@@ -1359,7 +1412,12 @@ function toggleHandoffMode() {
   setHandoffMode(!handoffMode);
 }
 
-function toggleHandoffPanel() {
+function toggleHandoffPanel(event) {
+  if (handoffFabSuppressClick) {
+    handoffFabSuppressClick = false;
+    event?.preventDefault();
+    return;
+  }
   handoffPanelOpen = !handoffPanelOpen;
   if (!handoffPanelOpen) handoffAdvancedOpen = false;
   mountPlacedHandoffAnnotations();
@@ -1899,16 +1957,20 @@ function mountPlacedHandoffAnnotations() {
   const root = ensureHandoffOverlayRoot();
   if (!root) return;
   root.innerHTML = "";
-  const panel = renderHandoffFloatingPanel();
-  root.appendChild(panel);
   if (!handoffMode) {
     handoffVisibleAnnotations = [];
+    const panel = renderHandoffFloatingPanel();
+    root.appendChild(panel);
+    applyHandoffFabPosition(panel);
     return;
   }
   handoffVisibleAnnotations = collectVisibleHandoffAnnotations();
   if (activeHandoffKey && !handoffVisibleAnnotations.some((record) => record.item.key === activeHandoffKey)) {
     activeHandoffKey = "";
   }
+  const panel = renderHandoffFloatingPanel();
+  root.appendChild(panel);
+  applyHandoffFabPosition(panel);
   const avoidRects = handoffAvoidRects(panel, handoffVisibleAnnotations);
   const placedRects = [];
   handoffVisibleAnnotations
@@ -1935,10 +1997,9 @@ function ensureHandoffOverlayRoot() {
 function renderHandoffFloatingPanel() {
   const panel = document.createElement("div");
   const count = handoffMode ? handoffVisibleAnnotations.length : 0;
-  const listLabel = handoffMode ? "查看当前页标注" : "显示并查看当前页标注";
-  panel.className = `handoff-fab-control ${handoffPanelOpen ? "open" : ""} ${handoffMode ? "annotations-visible" : ""} ${handoffPlacementMode ? "placing" : ""}`;
+  panel.className = `handoff-fab-control panel-${handoffFabPanelPlacement()} ${handoffPanelOpen ? "open" : ""} ${handoffMode ? "annotations-visible" : ""} ${handoffPlacementMode ? "placing" : ""}`;
   panel.innerHTML = `
-    <button class="handoff-fab" type="button" title="交付标注" aria-label="交付标注" aria-expanded="${handoffPanelOpen}" aria-controls="handoffFabPanel" onclick="toggleHandoffPanel()">
+    <button class="handoff-fab" type="button" title="交付标注" aria-label="交付标注" aria-expanded="${handoffPanelOpen}" aria-controls="handoffFabPanel" onpointerdown="startHandoffFabDrag(event)" onclick="toggleHandoffPanel(event)">
       <span aria-hidden="true">标</span>
       ${handoffMode && count ? `<b class="handoff-fab-count">${count > 99 ? "99+" : count}</b>` : ""}
     </button>
@@ -1950,10 +2011,8 @@ function renderHandoffFloatingPanel() {
       <button class="handoff-fab-switch ${handoffMode ? "active" : ""}" type="button" role="switch" aria-checked="${handoffMode}" onclick="toggleHandoffMode()">
         <span>显示本页标注</span><i aria-hidden="true"></i>
       </button>
-      <div class="handoff-fab-actions">
-        <button class="handoff-fab-action" type="button" onclick="openHandoffPanelFromFab()">${listLabel}</button>
-        <button class="handoff-fab-action ${handoffPlacementMode ? "active" : ""}" type="button" onclick="startHandoffPlacement('auto')">定位新增</button>
-      </div>
+      ${handoffMode ? `<div class="handoff-fab-current-list"><div class="handoff-fab-list-title"><strong>当前页标注</strong><span>${count} 条</span></div>${count ? `<div class="handoff-panel-list">${handoffVisibleAnnotations.map((record) => renderHandoffPanelListItem(record)).join("")}</div>` : '<div class="handoff-visible-empty">当前页暂无交付标注</div>'}</div>` : ""}
+      <div class="handoff-fab-actions"><button class="handoff-fab-action ${handoffPlacementMode ? "active" : ""}" type="button" onclick="startHandoffPlacement('auto')">定位新增</button></div>
       <div class="handoff-fab-more">
         <button class="handoff-fab-more-toggle" type="button" aria-expanded="${handoffAdvancedOpen}" onclick="toggleHandoffAdvanced()">更多管理 <span aria-hidden="true">${handoffAdvancedOpen ? "⌃" : "⌄"}</span></button>
         ${handoffAdvancedOpen ? `<div class="handoff-fab-more-actions"><button type="button" onclick="persistHandoffAnnotationsJson()">固化全部标注</button><button type="button" onclick="triggerHandoffAnnotationImport()">导入 JSON</button><button class="danger" type="button" onclick="confirmResetHandoffAnnotations()">恢复项目标注</button></div>` : ""}
@@ -1963,12 +2022,45 @@ function renderHandoffFloatingPanel() {
   return panel;
 }
 
-function openHandoffPanelFromFab() {
-  handoffPanelOpen = false;
-  if (!handoffMode) {
-    setHandoffMode(true);
-  }
-  openHandoffPanel();
+function startHandoffFabDrag(event) {
+  if (event.button !== undefined && event.button !== 0) return;
+  const control = event.currentTarget.closest(".handoff-fab-control");
+  if (!control) return;
+  const rect = control.getBoundingClientRect();
+  handoffFabDrag = {
+    pointerId: event.pointerId,
+    startY: event.clientY,
+    offsetY: event.clientY - rect.top,
+    moved: false,
+  };
+  event.currentTarget.setPointerCapture?.(event.pointerId);
+}
+
+function handleHandoffFabDrag(event) {
+  if (!handoffFabDrag || event.pointerId !== handoffFabDrag.pointerId) return;
+  const delta = event.clientY - handoffFabDrag.startY;
+  if (Math.abs(delta) > 6) handoffFabDrag.moved = true;
+  if (!handoffFabDrag.moved) return;
+  const control = document.querySelector(".handoff-fab-control");
+  if (!control) return;
+  const top = clampHandoffFabTop(event.clientY - handoffFabDrag.offsetY);
+  handoffFabPosition = { top };
+  control.classList.add("dragging");
+  control.style.top = `${top}px`;
+  control.style.bottom = "auto";
+  control.style.transform = "none";
+  syncHandoffFabPanelPlacement(control);
+  event.preventDefault();
+}
+
+function stopHandoffFabDrag(event) {
+  if (!handoffFabDrag || (event?.pointerId !== undefined && event.pointerId !== handoffFabDrag.pointerId)) return;
+  const moved = handoffFabDrag.moved;
+  handoffFabDrag = null;
+  document.querySelector(".handoff-fab-control")?.classList.remove("dragging");
+  if (!moved) return;
+  handoffFabSuppressClick = true;
+  saveHandoffFabPosition();
 }
 
 function renderHandoffPanelListItem(record) {
@@ -9878,6 +9970,9 @@ function toast(message) {
 
 if (typeof document !== "undefined") {
   document.addEventListener("click", handleHandoffPlacementClick, true);
+  document.addEventListener("pointermove", handleHandoffFabDrag);
+  document.addEventListener("pointerup", stopHandoffFabDrag);
+  document.addEventListener("pointercancel", stopHandoffFabDrag);
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape" && handoffPlacementMode) {
       stopHandoffPlacement();
@@ -9887,6 +9982,10 @@ if (typeof document !== "undefined") {
     if (event.key === "Escape" && handoffPanelOpen) closeHandoffPanel();
   });
   window.addEventListener("resize", () => {
+    if (handoffFabPosition) {
+      handoffFabPosition = { top: clampHandoffFabTop(handoffFabPosition.top) };
+      saveHandoffFabPosition();
+    }
     mountPlacedHandoffAnnotations();
   });
   window.addEventListener("hashchange", () => {
