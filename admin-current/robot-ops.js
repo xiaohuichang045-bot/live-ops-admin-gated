@@ -615,7 +615,6 @@
           ${renderAlerts(alertList)}
         </section>
       </section>
-      <section class="ops-fixed-bottom">${renderTrend()}</section>
       ${renderDrawer()}
     </div>`;
   }
