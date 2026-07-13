@@ -3,6 +3,7 @@ import { webcrypto } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { gunzipSync } from "node:zlib";
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const indexPath = resolve(root, "index.html");
@@ -47,7 +48,10 @@ async function tryDecrypt(answer, payload) {
     key,
     bytesFromBase64(payload.data),
   );
-  return textDecoder.decode(new Uint8Array(decrypted));
+  const bytes = payload.compression === "gzip"
+    ? gunzipSync(new Uint8Array(decrypted))
+    : new Uint8Array(decrypted);
+  return textDecoder.decode(bytes);
 }
 
 function extractAnswers(indexHtml) {

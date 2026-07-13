@@ -3,12 +3,13 @@ import { webcrypto } from "node:crypto";
 import { readdir, readFile, stat, writeFile } from "node:fs/promises";
 import { dirname, extname, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
+import { gzipSync } from "node:zlib";
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const adminRoot = resolve(root, "admin-current");
 const indexPath = resolve(root, "index.html");
 const payloadPath = resolve(root, "payload.json");
-const iterations = 210000;
+const iterations = 90000;
 const textEncoder = new TextEncoder();
 
 const mimeByExtension = new Map([
@@ -108,15 +109,17 @@ async function encryptBundle(answer, bundleText) {
   const salt = webcrypto.getRandomValues(new Uint8Array(16));
   const iv = webcrypto.getRandomValues(new Uint8Array(12));
   const key = await deriveKey(answer, salt);
+  const compressedBundle = gzipSync(bundleText, { level: 9 });
   const encrypted = await webcrypto.subtle.encrypt(
     { name: "AES-GCM", iv },
     key,
-    textEncoder.encode(bundleText),
+    compressedBundle,
   );
 
   return {
     version: 1,
     algorithm: "PBKDF2-SHA256-AES-256-GCM",
+    compression: "gzip",
     iterations,
     salt: toBase64(salt),
     iv: toBase64(iv),
@@ -128,8 +131,8 @@ async function updateInlinePayload(payload) {
   const indexHtml = await readFile(indexPath, "utf8");
   const payloadJson = JSON.stringify(payload, null, 2);
   const nextHtml = indexHtml.replace(
-    /(<script type="application\/json" id="encryptedPayload">\s*)[\s\S]*?(\s*<\/script>)/,
-    `$1\n${payloadJson}\n    $2`,
+    /<script type="application\/json" id="encryptedPayload">\s*[\s\S]*?\s*<\/script>/,
+    `<script type="application/json" id="encryptedPayload">\n${payloadJson}\n    </script>`,
   );
 
   if (nextHtml === indexHtml) {
