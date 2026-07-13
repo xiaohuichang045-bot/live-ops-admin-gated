@@ -19,6 +19,7 @@ const liveDashboardState = {
 let liveDashboardTimer = null;
 let liveRecordingSelection = "";
 let liveRecordingRange = { start: "", end: "" };
+let liveRoomSwitchFilters = { keyword: "", status: "全部状态" };
 
 const liveDashboardProducts = [
   { name: "非遗手作醒狮香囊", clicks: 86, sales: 12, amount: "¥1,548" },
@@ -66,7 +67,21 @@ function currentLiveDashboardRoom() {
 
 function availableLiveDashboardRooms() {
   const channelId = window.phase2State?.snapshot().currentChannelId || "channel-weishi";
+  if (window.phase2State?.isPlatformChannel?.()) return liveDashboardRooms;
   return liveDashboardRooms.filter((room) => (phase2State.rooms[room.id]?.channelId || "channel-weishi") === channelId);
+}
+
+function liveDashboardRoomStatus(room) {
+  return room.status || "直播中";
+}
+
+function filteredLiveDashboardRooms() {
+  const keyword = liveRoomSwitchFilters.keyword.trim().toLowerCase();
+  return availableLiveDashboardRooms().filter((room) => {
+    const matchesStatus = liveRoomSwitchFilters.status === "全部状态" || liveDashboardRoomStatus(room) === liveRoomSwitchFilters.status;
+    const searchable = `${room.id} ${room.name} ${room.title} ${room.host}`.toLowerCase();
+    return matchesStatus && (!keyword || searchable.includes(keyword));
+  });
 }
 
 function currentLiveVideoState() {
@@ -286,13 +301,10 @@ function renderLiveDashboardPage() {
   return `
     <div class="commerce-dashboard">
       <header class="live-dashboard-head">
-        <label class="live-room-selector">
+        <div class="live-room-selector">
           <span><b>${room.name}</b>｜直播数据大屏</span>
           <small>直播ID ${room.id}</small>
-          <select onchange="changeLiveDashboardRoom(this.value)">
-            ${availableLiveDashboardRooms().map((item) => `<option value="${item.id}" ${item.id === room.id ? "selected" : ""}>${item.name} · ${item.id}</option>`).join("")}
-          </select>
-        </label>
+        </div>
         <div class="live-session-status">
           <img src="./assets/live-dashboard-host.webp" alt="${room.host}头像" />
           <div><strong><span>直播中</span>${room.title}</strong><small>场次 19:21–20:21　用户ID 11495443</small></div>
@@ -301,6 +313,7 @@ function renderLiveDashboardPage() {
           <button class="live-source-switch mode-${videoSource.mode}" type="button" onclick="openLiveRecordingModal()"><small>当前画面</small><b>${sourceLabel}${liveHandoffMark("直播画面来源切换", "本次新增实时画面和录播画面切换入口，可人工选择最近72小时录屏或本地上传视频作为兜底画面。", "new")}</b></button>
         </div>
         <div class="live-head-actions">
+          <button type="button" onclick="openLiveRoomSwitchModal()">切换直播间</button>
           <button type="button" onclick="openLiveFaultModal()">演示故障${liveHandoffMark("故障自动切录播", "选择网络、电机、扬声器、推流或系统故障后，会同步产生告警、操作日志和故障自动录播状态。", "new")}</button>
           ${videoSource.faultType && !videoSource.recovering ? `<button type="button" onclick="phase2State.recoverFault('${room.id}')">模拟恢复</button>` : ""}
           ${videoSource.recovering ? `<button class="danger" type="button" onclick="phase2State.confirmRecovery('${room.id}')">确认恢复</button>` : ""}
@@ -409,10 +422,54 @@ function drawLiveDashboardTrend() {
 }
 
 function changeLiveDashboardRoom(roomId) {
+  if (!availableLiveDashboardRooms().some((room) => room.id === roomId)) {
+    window.toast?.("当前渠道无权查看该直播间");
+    return;
+  }
   liveDashboardState.roomId = roomId;
   liveDashboardState.tick = 0;
   liveDashboardState.updatedAt = new Date();
   renderApp();
+}
+
+function openLiveRoomSwitchModal() {
+  const rooms = filteredLiveDashboardRooms();
+  openModal(`
+    <div class="modal large live-room-switch-modal">
+      <div class="modal-header"><div class="modal-title">选择直播间</div><button class="modal-close" type="button" aria-label="关闭" onclick="closeModal()">×</button></div>
+      <div class="modal-body">
+        <div class="live-room-switch-toolbar">
+          <input class="input" type="search" value="${escapeLiveHtml(liveRoomSwitchFilters.keyword)}" placeholder="搜索直播ID、渠道、标题或主播" oninput="setLiveRoomSwitchFilter('keyword', this.value)">
+          <select class="input" onchange="setLiveRoomSwitchFilter('status', this.value)">
+            ${["全部状态", "直播中"].map((status) => `<option value="${status}" ${liveRoomSwitchFilters.status === status ? "selected" : ""}>${status}</option>`).join("")}
+          </select>
+          <button class="btn secondary" type="button" onclick="resetLiveRoomSwitchFilters()">清空</button>
+        </div>
+        <p class="live-room-switch-summary">${window.phase2State?.isPlatformChannel?.() ? "平台身份可查看全部已配置直播间。" : "仅显示当前渠道已配置的直播间。"}<span>${rooms.length} 个结果</span></p>
+        <div class="table-wrap live-room-switch-table"><table class="data-table"><thead><tr><th>直播ID</th><th>渠道</th><th>机器人</th><th>直播标题</th><th>主播</th><th>状态</th><th>操作</th></tr></thead><tbody>
+          ${rooms.length ? rooms.map((item) => {
+            const roomInfo = window.phase2State?.rooms?.[item.id] || {};
+            return `<tr><td>${escapeLiveHtml(item.id)}</td><td>${escapeLiveHtml(item.name)}</td><td>${escapeLiveHtml(roomInfo.robotName || "-")}</td><td>${escapeLiveHtml(item.title)}</td><td>${escapeLiveHtml(item.host)}</td><td><span class="live-room-status">${liveDashboardRoomStatus(item)}</span></td><td><button class="btn small" type="button" onclick="selectLiveDashboardRoom('${item.id}')">选择</button></td></tr>`;
+          }).join("") : '<tr><td colspan="7" class="live-room-switch-empty">未找到匹配的直播间</td></tr>'}
+        </tbody></table></div>
+      </div>
+      <div class="modal-footer"><button class="btn secondary" type="button" onclick="closeModal()">取消</button></div>
+    </div>`);
+}
+
+function setLiveRoomSwitchFilter(key, value) {
+  liveRoomSwitchFilters[key] = value;
+  openLiveRoomSwitchModal();
+}
+
+function resetLiveRoomSwitchFilters() {
+  liveRoomSwitchFilters = { keyword: "", status: "全部状态" };
+  openLiveRoomSwitchModal();
+}
+
+function selectLiveDashboardRoom(roomId) {
+  closeModal();
+  changeLiveDashboardRoom(roomId);
 }
 
 function setLiveDashboardRange(range) {
