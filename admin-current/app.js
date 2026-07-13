@@ -5339,6 +5339,7 @@ function renderActionPage() {
 
 function renderSingleActionList() {
   const visibleActions = visiblePlatformActions({ filters: singleActionFilters });
+  const platform = isPlatformChannel();
   return `
     <div class="toolbar">
       <div class="filters">
@@ -5347,11 +5348,13 @@ function renderSingleActionList() {
         <select class="select w-150" onchange="setSingleActionFilter('posture', this.value)">${["全部姿态", "站姿", "坐姿", "站坐通用"].map((value) => `<option ${singleActionFilters.posture === value ? "selected" : ""}>${value}</option>`).join("")}</select>
         <button class="btn" onclick="toast('已按条件查询平台动作')">查询</button>
       </div>
-      <span class="readonly-resource-note">平台下发 · 只读资源${handoffMark("单一动作只读资源", "本次调整后单一动作由平台下发，客户侧和机器人详情页只能查看、筛选和引用，不能新增、编辑或删除。", "changed")}</span>
+      ${platform
+        ? `<div class="toolbar-actions"><button class="btn" onclick="openActionModal()">＋ 新增动作</button><button class="btn secondary" onclick="openBatchModal('actions')">批量下发</button></div>`
+        : `<span class="readonly-resource-note">平台下发 · 只读资源${handoffMark("单一动作只读资源", "单一动作由微视中国平台维护并下发；客户侧和机器人详情页只能查看、筛选和引用，不能新增、编辑或删除。", "changed")}</span>`}
     </div>
     <div class="table-wrap">
       <table class="data-table">
-        <thead><tr><th>序号</th><th>动作ID</th><th>动作名称</th><th>动作类型</th><th>动作描述</th><th>适用姿态</th><th>动作时长</th></tr></thead>
+        <thead><tr><th>序号</th><th>动作ID</th><th>动作名称</th><th>动作类型</th><th>动作描述</th><th>适用姿态</th><th>动作时长</th><th>状态</th>${platform ? "<th>操作</th>" : ""}</tr></thead>
         <tbody>
           ${visibleActions.map((action) => `
             <tr>
@@ -5362,9 +5365,11 @@ function renderSingleActionList() {
               <td>${action.desc || ""}</td>
               <td>${action.posture}</td>
               <td>${action.duration}s</td>
+              <td><button class="switch-button ${action.status ? "on" : ""}" ${platform ? `onclick="toggleActionStatus('${escapeJs(action.id)}')"` : "disabled"}><span></span></button></td>
+              ${platform ? `<td class="nowrap"><button class="link" onclick="openActionModal('${escapeJs(action.id)}')">编辑</button> | <button class="link danger" onclick="deleteAction('${escapeJs(action.id)}')">删除</button></td>` : ""}
             </tr>
           `).join("")}
-          ${visibleActions.length ? "" : `<tr><td colspan="7">暂无符合条件的已下发动作</td></tr>`}
+          ${visibleActions.length ? "" : `<tr><td colspan="${platform ? 9 : 8}">暂无符合条件的动作</td></tr>`}
         </tbody>
       </table>
     </div>
@@ -5557,6 +5562,10 @@ function copyText(value) {
 }
 
 function toggleActionStatus(id) {
+  if (!isPlatformChannel()) {
+    toast("客户渠道只能查看平台下发动作");
+    return;
+  }
   const action = actions.find((item) => item.id === id);
   if (!action) return;
   action.status = !action.status;
@@ -5571,6 +5580,10 @@ function toggleAgentStatus(id) {
 }
 
 function deleteAction(id) {
+  if (!isPlatformChannel()) {
+    toast("客户渠道只能查看平台下发动作");
+    return;
+  }
   const index = actions.findIndex((item) => item.id === id);
   if (index >= 0) actions.splice(index, 1);
   toast("动作已删除");
@@ -5614,11 +5627,72 @@ function deleteAgent(id) {
 }
 
 function openActionModal(actionId = "", returnRobotId = "", returnTab = "") {
-  toast("单一动作为平台下发只读资源，不支持新增或编辑");
+  if (!isPlatformChannel()) {
+    toast("客户渠道只能查看平台下发动作");
+    return;
+  }
+  const action = actions.find((item) => item.id === actionId);
+  const closeAction = returnRobotId
+    ? robotResourceEditorCloseAction(returnRobotId, returnTab, "actions")
+    : "closeModal()";
+  openModal(`
+    <div class="modal medium">
+      <div class="modal-header"><div class="modal-title">${action ? "编辑动作" : "新增动作"}</div><button class="modal-close" onclick="${closeAction}">×</button></div>
+      <div class="modal-body form-grid">
+        <div class="form-row"><div class="form-label required">动作ID</div><div><input id="actionId" class="input" value="${escapeHtml(action?.id || `ACT-${Date.now().toString().slice(-5)}`)}" ${action ? "readonly" : ""} /></div></div>
+        ${formInputWithId("actionName", "动作名称", "输入动作名称", true, action?.name || "")}
+        ${formSelectWithId("actionType", "动作类型", ["站姿", "坐姿", "站坐通用"], true, action?.type || action?.posture || "站姿")}
+        ${formSelectWithId("actionPosture", "适用姿态", ["站姿", "坐姿", "站坐通用"], true, action?.posture || "站姿")}
+        ${formInputWithId("actionDuration", "动作时长", "输入秒数", true, action?.duration ?? 10, "秒")}
+        ${formTextareaWithId("actionDesc", "动作描述", "说明动作适用场景", action?.desc || "")}
+        <div class="form-row"><div class="form-label">启用状态</div><label class="checkbox-line"><input id="actionStatus" type="checkbox" ${action?.status !== false ? "checked" : ""} />启用</label></div>
+        <div class="upload-hint">微视中国维护平台动作大库；客户渠道只能查看已下发动作。</div>
+      </div>
+      <div class="modal-footer"><button class="btn secondary" onclick="${closeAction}">取消</button><button class="btn" onclick="saveActionModal('${escapeJs(actionId)}', '${escapeJs(returnRobotId)}', '${escapeJs(returnTab || "actions")}')">保存</button></div>
+    </div>
+  `);
 }
 
 function saveActionModal(actionId = "", returnRobotId = "", returnTab = "") {
-  toast("单一动作为平台下发只读资源，不支持保存本地动作");
+  if (!isPlatformChannel()) {
+    toast("客户渠道只能查看平台下发动作");
+    return;
+  }
+  const id = valueById("actionId", actionId);
+  const name = valueById("actionName", "新建动作");
+  const type = valueById("actionType", "站姿");
+  const posture = valueById("actionPosture", type);
+  const duration = Math.max(0, Number(valueById("actionDuration", "10")) || 0);
+  const status = Boolean(document.getElementById("actionStatus")?.checked);
+  if (!id) {
+    toast("请填写动作ID");
+    return;
+  }
+  const duplicate = actions.find((item) => item.id !== actionId && item.id === id);
+  if (duplicate) {
+    toast(`动作ID已存在：${id}`);
+    return;
+  }
+  const target = actions.find((item) => item.id === actionId) || { id, created: formatLocalTimestamp(new Date()) };
+  target.id = id;
+  target.seq = target.seq || Math.max(0, ...actions.map((item) => Number(item.seq) || 0)) + 1;
+  target.name = name || "新建动作";
+  target.desc = valueById("actionDesc", "");
+  target.type = type;
+  target.posture = posture;
+  target.duration = duration;
+  target.status = status;
+  target.owner = "公共模板";
+  target.scope = "platform_distributed";
+  target.resourceScope = "platform_distributed";
+  target.channelId = "channel-weishi";
+  if (!Array.isArray(target.channelIds) || !target.channelIds.length) target.channelIds = ["channel-weishi"];
+  if (!Array.isArray(target.supportedVersions) || !target.supportedVersions.length) target.supportedVersions = robotVersionOptions.slice();
+  if (!Array.isArray(target.abilityScope) || !target.abilityScope.length) target.abilityScope = ["live", "performance", "tour"];
+  if (!actions.includes(target)) actions.unshift(target);
+  closeModal();
+  renderApp();
+  toast(actionId ? "动作已保存" : "动作已新增到平台动作大库");
 }
 
 function openActionGroupModal(groupId = "", returnRobotId = "", returnTab = "") {
