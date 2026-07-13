@@ -304,6 +304,74 @@
   margin-bottom: 10px;
 }
 
+.robot-ops-page.ops-fixed-layout {
+  height: calc(100vh - 88px);
+  min-height: 620px;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) 148px;
+  gap: 10px;
+  overflow: hidden;
+}
+
+.ops-fixed-top,
+.ops-fixed-middle,
+.ops-fixed-bottom {
+  min-height: 0;
+}
+
+.ops-fixed-top {
+  position: relative;
+  z-index: 2;
+}
+
+.ops-fixed-top .ops-filterbar { margin-bottom: 10px; }
+
+.ops-fixed-middle { overflow: hidden; }
+
+.ops-fixed-middle .ops-monitor-layout {
+  height: 100%;
+  min-height: 0;
+  margin-bottom: 0;
+}
+
+.ops-fixed-layout .ops-monitor-panel,
+.ops-fixed-layout .ops-alert-panel {
+  min-height: 0;
+  height: 100%;
+}
+
+.ops-fixed-layout .ops-monitor-panel {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
+}
+
+.ops-fixed-layout .ops-monitor-content {
+  min-height: 0;
+  overflow: auto;
+  padding-right: 2px;
+  scrollbar-color: #353d55 transparent;
+}
+
+.ops-fixed-layout .ops-alert-panel {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+}
+
+.ops-fixed-layout .ops-alert-list { max-height: none; min-height: 0; }
+
+.ops-fixed-bottom { overflow: hidden; }
+
+.ops-fixed-bottom .ops-trend-grid { height: 100%; }
+
+.ops-fixed-bottom .ops-trend-panel,
+.ops-fixed-bottom .ops-trend-summary { min-height: 0; }
+
+.ops-fixed-bottom .ops-trend-chart { height: 90px; }
+
+.ops-fixed-bottom .ops-summary-card { min-height: 88px; padding: 9px 10px; }
+.ops-fixed-bottom .ops-summary-card strong { margin: 3px 0 1px; font-size: 22px; }
+.ops-fixed-bottom .ops-summary-card i { height: 9px; margin-top: 5px; }
+
 .ops-monitor-panel,
 .ops-alert-panel,
 .ops-trend-panel,
@@ -625,10 +693,32 @@
   .ops-alert-list { max-height: 340px; }
   .ops-monitor-content { min-height: 360px; }
   .ops-summary-cards { max-width: 680px; }
+  .robot-ops-page.ops-fixed-layout {
+    height: auto;
+    min-height: calc(100vh - 124px);
+    display: block;
+    overflow: visible;
+  }
+  .ops-fixed-middle,
+  .ops-fixed-bottom { margin-top: 10px; overflow: visible; }
+  .ops-fixed-middle .ops-monitor-layout,
+  .ops-fixed-layout .ops-monitor-panel,
+  .ops-fixed-layout .ops-alert-panel { height: auto; }
+  .ops-fixed-layout .ops-monitor-content { min-height: 360px; overflow: visible; }
+  .ops-fixed-layout .ops-alert-list { max-height: 340px; }
+  .ops-fixed-bottom .ops-trend-chart { height: 230px; }
 }
 
 @media (max-width: 1040px) {
   .ops-metrics { grid-template-columns: repeat(2, minmax(150px, 1fr)); }
   .ops-version-card { grid-column: span 2; }
   .ops-device-grid { grid-template-columns: repeat(2, minmax(180px, 1fr)); }
+}
+
+@media (max-width: 720px) {
+  .ops-section-head { align-items: flex-start; flex-wrap: wrap; }
+  .ops-view-switch { max-width: 100%; }
+  .ops-view-switch button { padding: 0 10px; }
+  .ops-device-grid { grid-template-columns: minmax(0, 1fr); }
+  .ops-pagination { align-items: flex-start; flex-wrap: wrap; }
 }

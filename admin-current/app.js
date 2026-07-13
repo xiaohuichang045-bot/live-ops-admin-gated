@@ -918,7 +918,7 @@ function renderApp() {
   content.classList.toggle("live-dashboard-content", activePage === "live-dashboard");
   const renderers = pageRenderers();
   const renderPage = renderers[activePage] || renderers.robots;
-  content.innerHTML = `${renderHandoffManagerBar()}${renderChannelAccessBanner()}${renderPage()}`;
+  content.innerHTML = `${renderHandoffManagerBar()}${renderPage()}`;
   if (activePage === "live-dashboard" && typeof mountLiveDashboard === "function") mountLiveDashboard();
   mountPlacedHandoffAnnotations();
 }

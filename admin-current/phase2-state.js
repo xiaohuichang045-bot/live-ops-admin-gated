@@ -16,13 +16,23 @@
     "206188": { robotId: "GFWL-002", robotName: "青禾", channelId: "channel-culture" },
   };
   const highRiskFaults = new Set(["电机异常", "系统异常"]);
+  const liveRoomTitles = [
+    "非遗醒狮手作专场",
+    "国风生活好物推荐",
+    "岭南文创限时秒杀",
+    "夏日旅拍装备讲解",
+    "城市漫游礼盒专场",
+    "国潮家居焕新直播",
+    "地方风物精选专场",
+    "文旅目的地种草直播",
+  ];
 
   function hoursAgo(hours) {
     return new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
   }
 
   function seedRecordings() {
-    return [
+    const recordings = [
       recording("REC-106176-01", "106176", 2, "00:32:18"),
       recording("REC-106176-02", "106176", 9, "00:28:44"),
       recording("REC-106176-03", "106176", 29, "00:41:03"),
@@ -33,6 +43,22 @@
       recording("REC-206188-01", "206188", 4, "00:34:12"),
       recording("REC-206188-02", "206188", 21, "00:25:47"),
     ];
+    Object.keys(rooms).forEach((roomId, index) => {
+      if (recordings.some((item) => item.roomId === roomId)) return;
+      recordings.push(...seedRecordingsForRoom(roomId, index));
+    });
+    return recordings;
+  }
+
+  function seedRecordingsForRoom(roomId, index) {
+    return [
+      recording(`REC-${roomId}-01`, roomId, 2 + (index % 12), "00:24:36"),
+      recording(`REC-${roomId}-02`, roomId, 16 + (index % 24), "00:31:12"),
+    ];
+  }
+
+  function generatedLiveRoomTitle(index) {
+    return liveRoomTitles[index % liveRoomTitles.length];
   }
 
   function recording(id, roomId, ageHours, duration) {
@@ -112,6 +138,28 @@
   function roomForRobot(robotId) {
     const entry = Object.entries(rooms).find(([, room]) => room.robotId === robotId);
     return entry ? { id: entry[0], ...entry[1] } : null;
+  }
+
+  function registerLiveRooms(devices) {
+    let changed = false;
+    devices.forEach((device, index) => {
+      if (roomForRobot(device.id)) return;
+      const roomId = `3${String(index + 1).padStart(5, "0")}`;
+      rooms[roomId] = {
+        robotId: device.id,
+        robotName: device.name,
+        channelId: device.channelId || "channel-weishi",
+        title: generatedLiveRoomTitle(index),
+        host: device.name,
+        viewers: 42 + ((index * 17) % 180),
+      };
+      state.videoStates[roomId] = state.videoStates[roomId] || { mode: "live", recordingId: "", faultType: "", recovering: false };
+      if (!state.recordings.some((item) => item.roomId === roomId)) {
+        state.recordings.push(...seedRecordingsForRoom(roomId, index));
+      }
+      changed = true;
+    });
+    if (changed) save();
   }
 
   function videoState(roomId) {
@@ -276,6 +324,7 @@
     setChannel,
     roomInfo,
     roomForRobot,
+    registerLiveRooms,
     videoState,
     recordingsFor,
     recordingById,

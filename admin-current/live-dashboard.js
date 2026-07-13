@@ -1,4 +1,4 @@
-const liveDashboardRooms = [
+const seededLiveDashboardRooms = [
   { id: "106176", name: "微视中国", title: "文旅狮子正在直播", host: "苏玥", viewers: 126 },
   { id: "106188", name: "国风好物", title: "国风好物专场", host: "小暖", viewers: 89 },
   { id: "106203", name: "星球生活", title: "机器人生活方式直播", host: "星栖", viewers: 54 },
@@ -19,7 +19,10 @@ const liveDashboardState = {
 let liveDashboardTimer = null;
 let liveRecordingSelection = "";
 let liveRecordingRange = { start: "", end: "" };
-let liveRoomSwitchFilters = { keyword: "", status: "全部状态" };
+let liveRoomSwitchFilters = { keyword: "", status: "全部" };
+let liveRoomSwitchPage = 1;
+const liveRoomSwitchPageSize = 10;
+const liveRoomSessionUsers = ["金老师的小脑斧", "婚旅世界", "微视戏剧", "南方游客", "岭南生活家", "漫游小队", "国潮选品官", "城市旅人"];
 
 const liveDashboardProducts = [
   { name: "非遗手作醒狮香囊", clicks: 86, sales: 12, amount: "¥1,548" },
@@ -60,15 +63,50 @@ const liveDashboardComments = [
 
 function currentLiveDashboardRoom() {
   const rooms = availableLiveDashboardRooms();
-  const room = rooms.find((item) => item.id === liveDashboardState.roomId) || rooms[0] || liveDashboardRooms[0];
+  const room = rooms.find((item) => item.id === liveDashboardState.roomId) || rooms[0] || allLiveDashboardRooms()[0] || seededLiveDashboardRooms[0];
   if (room.id !== liveDashboardState.roomId) liveDashboardState.roomId = room.id;
   return room;
 }
 
+function allLiveDashboardRooms() {
+  const seeded = new Map(seededLiveDashboardRooms.map((room) => [room.id, room]));
+  const channels = window.phase2State?.channels || [];
+  return Object.entries(window.phase2State?.rooms || {}).map(([id, room], index) => {
+    const known = seeded.get(id);
+    const base = known || (() => {
+      const channel = channels.find((item) => item.id === room.channelId);
+      return {
+        id,
+        name: channel?.name || "微视中国",
+        title: room.title || "直播好物专场",
+        host: room.host || room.robotName,
+        viewers: room.viewers || 42 + ((index * 17) % 180),
+      };
+    })();
+    return { ...base, ...liveRoomSessionData(base, index) };
+  });
+}
+
+function liveRoomSessionData(room, index) {
+  const date = index < 36 ? "2026-07-13" : "2026-07-12";
+  const hour = String(13 + ((index * 3) % 7)).padStart(2, "0");
+  const minute = String((index * 7 + 4) % 60).padStart(2, "0");
+  const endMinute = String((Number(minute) + 22) % 60).padStart(2, "0");
+  const status = room.status || (index % 6 === 5 ? "已结束" : "直播中");
+  return {
+    userNickname: room.userNickname || liveRoomSessionUsers[index % liveRoomSessionUsers.length],
+    userId: room.userId || `11${String(499672 + index * 91).padStart(7, "0")}`,
+    startedAt: room.startedAt || `${date} ${hour}:${minute}:06`,
+    status,
+    endedAt: room.endedAt || (status === "已结束" ? `${date} ${hour}:${endMinute}:42` : "--"),
+  };
+}
+
 function availableLiveDashboardRooms() {
   const channelId = window.phase2State?.snapshot().currentChannelId || "channel-weishi";
-  if (window.phase2State?.isPlatformChannel?.()) return liveDashboardRooms;
-  return liveDashboardRooms.filter((room) => (phase2State.rooms[room.id]?.channelId || "channel-weishi") === channelId);
+  const rooms = allLiveDashboardRooms();
+  if (window.phase2State?.isPlatformChannel?.()) return rooms;
+  return rooms.filter((room) => (phase2State.rooms[room.id]?.channelId || "channel-weishi") === channelId);
 }
 
 function liveDashboardRoomStatus(room) {
@@ -78,10 +116,22 @@ function liveDashboardRoomStatus(room) {
 function filteredLiveDashboardRooms() {
   const keyword = liveRoomSwitchFilters.keyword.trim().toLowerCase();
   return availableLiveDashboardRooms().filter((room) => {
-    const matchesStatus = liveRoomSwitchFilters.status === "全部状态" || liveDashboardRoomStatus(room) === liveRoomSwitchFilters.status;
-    const searchable = `${room.id} ${room.name} ${room.title} ${room.host}`.toLowerCase();
-    return matchesStatus && (!keyword || searchable.includes(keyword));
+    const matchesStatus = liveRoomSwitchFilters.status === "全部" || liveDashboardRoomStatus(room) === liveRoomSwitchFilters.status;
+    return matchesStatus && (!keyword || room.title.toLowerCase().includes(keyword));
   });
+}
+
+function pagedLiveDashboardRooms(rooms) {
+  const totalPages = Math.max(1, Math.ceil(rooms.length / liveRoomSwitchPageSize));
+  liveRoomSwitchPage = Math.min(Math.max(liveRoomSwitchPage, 1), totalPages);
+  const start = (liveRoomSwitchPage - 1) * liveRoomSwitchPageSize;
+  return rooms.slice(start, start + liveRoomSwitchPageSize);
+}
+
+function liveRoomSwitchPagination(total) {
+  const totalPages = Math.max(1, Math.ceil(total / liveRoomSwitchPageSize));
+  const pageNumbers = Array.from({ length: Math.min(totalPages, 6) }, (_, index) => index + 1);
+  return `<div class="live-room-switch-pagination"><span>共 ${total} 条</span><div><button type="button" ${liveRoomSwitchPage === 1 ? "disabled" : ""} onclick="setLiveRoomSwitchPage(${liveRoomSwitchPage - 1})">‹</button>${pageNumbers.map((page) => `<button type="button" class="${page === liveRoomSwitchPage ? "active" : ""}" onclick="setLiveRoomSwitchPage(${page})">${page}</button>`).join("")}${totalPages > 6 ? `<span>…</span><button type="button" onclick="setLiveRoomSwitchPage(${totalPages})">${totalPages}</button>` : ""}<button type="button" ${liveRoomSwitchPage === totalPages ? "disabled" : ""} onclick="setLiveRoomSwitchPage(${liveRoomSwitchPage + 1})">›</button></div></div>`;
 }
 
 function currentLiveVideoState() {
@@ -434,36 +484,40 @@ function changeLiveDashboardRoom(roomId) {
 
 function openLiveRoomSwitchModal() {
   const rooms = filteredLiveDashboardRooms();
+  const pageRooms = pagedLiveDashboardRooms(rooms);
   openModal(`
     <div class="modal large live-room-switch-modal">
       <div class="modal-header"><div class="modal-title">选择直播间</div><button class="modal-close" type="button" aria-label="关闭" onclick="closeModal()">×</button></div>
       <div class="modal-body">
         <div class="live-room-switch-toolbar">
-          <input class="input" type="search" value="${escapeLiveHtml(liveRoomSwitchFilters.keyword)}" placeholder="搜索直播ID、渠道、标题或主播" oninput="setLiveRoomSwitchFilter('keyword', this.value)">
-          <select class="input" onchange="setLiveRoomSwitchFilter('status', this.value)">
-            ${["全部状态", "直播中"].map((status) => `<option value="${status}" ${liveRoomSwitchFilters.status === status ? "selected" : ""}>${status}</option>`).join("")}
+          <input id="liveRoomSwitchKeyword" class="input" type="search" value="${escapeLiveHtml(liveRoomSwitchFilters.keyword)}" placeholder="搜索直播间标题">
+          <select class="input" onchange="setLiveRoomSwitchStatus(this.value)">
+            ${[["全部", "状态"], ["直播中", "直播中"], ["已结束", "已结束"]].map(([value, label]) => `<option value="${value}" ${liveRoomSwitchFilters.status === value ? "selected" : ""}>${label}</option>`).join("")}
           </select>
-          <button class="btn secondary" type="button" onclick="resetLiveRoomSwitchFilters()">清空</button>
+          <button class="btn" type="button" onclick="searchLiveRoomSwitch()">搜索</button>
         </div>
-        <p class="live-room-switch-summary">${window.phase2State?.isPlatformChannel?.() ? "平台身份可查看全部已配置直播间。" : "仅显示当前渠道已配置的直播间。"}<span>${rooms.length} 个结果</span></p>
-        <div class="table-wrap live-room-switch-table"><table class="data-table"><thead><tr><th>直播ID</th><th>渠道</th><th>机器人</th><th>直播标题</th><th>主播</th><th>状态</th><th>操作</th></tr></thead><tbody>
-          ${rooms.length ? rooms.map((item) => {
-            const roomInfo = window.phase2State?.rooms?.[item.id] || {};
-            return `<tr><td>${escapeLiveHtml(item.id)}</td><td>${escapeLiveHtml(item.name)}</td><td>${escapeLiveHtml(roomInfo.robotName || "-")}</td><td>${escapeLiveHtml(item.title)}</td><td>${escapeLiveHtml(item.host)}</td><td><span class="live-room-status">${liveDashboardRoomStatus(item)}</span></td><td><button class="btn small" type="button" onclick="selectLiveDashboardRoom('${item.id}')">选择</button></td></tr>`;
-          }).join("") : '<tr><td colspan="7" class="live-room-switch-empty">未找到匹配的直播间</td></tr>'}
+        <div class="table-wrap live-room-switch-table"><table class="data-table"><thead><tr><th>ID</th><th>开播时间</th><th>用户昵称</th><th>用户ID</th><th>直播间标题</th><th>状态</th><th>关播时间</th><th>操作</th></tr></thead><tbody>
+          ${pageRooms.length ? pageRooms.map((item) => `<tr><td>${escapeLiveHtml(item.id)}</td><td>${escapeLiveHtml(item.startedAt)}</td><td>${escapeLiveHtml(item.userNickname)}</td><td>${escapeLiveHtml(item.userId)}</td><td>${escapeLiveHtml(item.title)}</td><td><span class="live-room-status ${item.status === "已结束" ? "ended" : ""}">${escapeLiveHtml(item.status)}</span></td><td>${escapeLiveHtml(item.endedAt)}</td><td><button class="btn small" type="button" onclick="selectLiveDashboardRoom('${item.id}')">选择</button></td></tr>`).join("") : '<tr><td colspan="8" class="live-room-switch-empty">未找到匹配的直播间</td></tr>'}
         </tbody></table></div>
+        ${liveRoomSwitchPagination(rooms.length)}
       </div>
-      <div class="modal-footer"><button class="btn secondary" type="button" onclick="closeModal()">取消</button></div>
     </div>`);
 }
 
-function setLiveRoomSwitchFilter(key, value) {
-  liveRoomSwitchFilters[key] = value;
+function searchLiveRoomSwitch() {
+  liveRoomSwitchFilters.keyword = document.getElementById("liveRoomSwitchKeyword")?.value || "";
+  liveRoomSwitchPage = 1;
   openLiveRoomSwitchModal();
 }
 
-function resetLiveRoomSwitchFilters() {
-  liveRoomSwitchFilters = { keyword: "", status: "全部状态" };
+function setLiveRoomSwitchStatus(status) {
+  liveRoomSwitchFilters.status = status;
+  liveRoomSwitchPage = 1;
+  openLiveRoomSwitchModal();
+}
+
+function setLiveRoomSwitchPage(page) {
+  liveRoomSwitchPage = page;
   openLiveRoomSwitchModal();
 }
 

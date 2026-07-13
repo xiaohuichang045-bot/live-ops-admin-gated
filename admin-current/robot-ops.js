@@ -26,6 +26,7 @@
   ];
 
   const devices = buildDevicePool();
+  global.phase2State?.registerLiveRooms?.(devices);
 
   const alerts = [
     alert("ALT-001", "DT-LIVE-003", 4, "严重", "电机异常", "3号电机异常"),
@@ -63,7 +64,7 @@
   ];
 
   const state = {
-    filters: { version: "全部", onlineState: "全部", alertType: "全部", hours: 6 },
+    filters: { channel: "channel-weishi", version: "全部", onlineState: "全部", alertType: "全部", hours: 6 },
     viewMode: "grid",
     page: 1,
     pageSize: 12,
@@ -138,7 +139,9 @@
   }
 
   function baseDevices() {
-    const channelId = global.phase2State?.snapshot().currentChannelId || "channel-weishi";
+    const currentChannelId = global.phase2State?.snapshot().currentChannelId || "channel-weishi";
+    const isPlatform = global.phase2State?.isPlatformChannel?.();
+    const selectedChannelId = isPlatform ? state.filters.channel : currentChannelId;
     return devices.map((item) => {
       const room = global.phase2State?.roomForRobot(item.id);
       const video = room ? global.phase2State.videoState(room.id) : null;
@@ -149,11 +152,11 @@
       if (video.faultType === "电机异常") next.motor = "电机异常";
       return next;
     }).filter((item) => {
-      if (item.channelId !== channelId) return false;
+      if (selectedChannelId !== "全部" && item.channelId !== selectedChannelId) return false;
       const versionMatch = state.filters.version === "全部" || item.version === state.filters.version;
       const onlineMatch = state.filters.onlineState === "全部" || item.onlineState === state.filters.onlineState;
       return versionMatch && onlineMatch;
-    });
+    }).sort((a, b) => liveRoomAvailabilityRank(a) - liveRoomAvailabilityRank(b));
   }
 
   function baseAlerts() {
@@ -215,7 +218,8 @@
   }
 
   function resetFilters() {
-    state.filters = { version: "全部", onlineState: "全部", alertType: "全部", hours: 6 };
+    const currentChannelId = global.phase2State?.snapshot().currentChannelId || "channel-weishi";
+    state.filters = { channel: global.phase2State?.isPlatformChannel?.() ? "channel-weishi" : currentChannelId, version: "全部", onlineState: "全部", alertType: "全部", hours: 6 };
     state.page = 1;
     state.selectedHour = null;
     state.selectedDeviceId = "";
@@ -298,6 +302,10 @@
     return "warning";
   }
 
+  function liveRoomAvailabilityRank(item) {
+    return { "在线": 0, "异常": 1, "离线": 2 }[item.onlineState] ?? 1;
+  }
+
   function statusIcon(label, value, symbol) {
     return `<span class="ops-status-item ${statusTone(value)}" title="${escapeHtml(label)}：${escapeHtml(value)}"><span aria-hidden="true">${symbol}</span><span>${escapeHtml(value)}</span></span>`;
   }
@@ -320,11 +328,23 @@
     return values.map((value) => `<option value="${escapeHtml(value)}" ${String(value) === String(selected) ? "selected" : ""}>${escapeHtml(value)}</option>`).join("");
   }
 
+  function channelFilterOptions() {
+    const channels = global.phase2State?.channels || [];
+    const currentChannelId = global.phase2State?.snapshot().currentChannelId || "channel-weishi";
+    if (!global.phase2State?.isPlatformChannel?.()) return channels.filter((item) => item.id === currentChannelId);
+    return [{ id: "全部", name: "全部渠道" }, ...channels];
+  }
+
+  function channelOptionMarkup(values, selected) {
+    return values.map((item) => `<option value="${escapeHtml(item.id)}" ${item.id === selected ? "selected" : ""}>${escapeHtml(item.name)}</option>`).join("");
+  }
+
   function renderFilters() {
     return `
       <div class="ops-filterbar" aria-label="运维筛选条件">
         <label class="ops-filter ops-filter-fixed"><span>机器人类型</span><strong>直播</strong></label>
-        <label class="ops-filter"><span>机器人版本${opsHandoffMark("机器人运维筛选", "机器人运维新增版本、在线状态、告警类型和时间范围筛选，支持按当前渠道查看直播机器人。", "new")}</span><select onchange="robotOps.setFilter('version', this.value)">${optionMarkup(filterOptions.version, state.filters.version)}</select></label>
+        <label class="ops-filter"><span>渠道${opsHandoffMark("机器人运维筛选", "机器人运维新增渠道、版本、在线状态、告警类型和时间范围筛选。平台可按渠道切换查看，客户渠道只显示自身直播间。", "new")}</span><select onchange="robotOps.setFilter('channel', this.value)">${channelOptionMarkup(channelFilterOptions(), global.phase2State?.isPlatformChannel?.() ? state.filters.channel : (global.phase2State?.snapshot().currentChannelId || "channel-weishi"))}</select></label>
+        <label class="ops-filter"><span>机器人版本</span><select onchange="robotOps.setFilter('version', this.value)">${optionMarkup(filterOptions.version, state.filters.version)}</select></label>
         <label class="ops-filter"><span>在线状态</span><select onchange="robotOps.setFilter('onlineState', this.value)">${optionMarkup(filterOptions.onlineState, state.filters.onlineState)}</select></label>
         <label class="ops-filter"><span>告警类型</span><select onchange="robotOps.setFilter('alertType', this.value)">${optionMarkup(filterOptions.alertType, state.filters.alertType)}</select></label>
         <label class="ops-filter"><span>时间范围</span><select onchange="robotOps.setFilter('hours', this.value)">${filterOptions.hours.map((value) => `<option value="${value}" ${value === state.filters.hours ? "selected" : ""}>最近${value}小时</option>`).join("")}</select></label>
@@ -579,19 +599,23 @@
         ${renderDrawer()}
       </div>`;
     }
-    return `<div class="robot-ops-page">
-      <header class="ops-hero">
-        <div><span class="ops-kicker">ROBOT LIVE OPERATIONS</span><h1>机器人直播运维监控</h1><p>集中查看直播机器人画面、设备状态与实时告警</p></div>
-        <div class="ops-refresh"><span>最后刷新 ${formatClock(state.lastRefresh, true)}</span><label><input type="checkbox" ${state.autoRefresh ? "checked" : ""} onchange="robotOps.setAutoRefresh(this.checked)"><i></i>自动刷新 10s</label><button class="ops-button" type="button" onclick="robotOps.refreshNow()">立即刷新</button></div>
-      </header>
-      ${renderFilters()}
-      ${state.selectedHour !== null ? `<div class="ops-linked-filter"><span>已联动：${selectedHourLabel()}</span><button type="button" onclick="robotOps.clearTrendSelection()">清除联动 ×</button></div>` : ""}
-      ${renderMetrics(deviceList, alertList)}
-      <section class="ops-monitor-layout">
-        ${monitorPanel}
-        ${renderAlerts(alertList)}
+    return `<div class="robot-ops-page ops-fixed-layout">
+      <section class="ops-fixed-top">
+        <header class="ops-hero">
+          <div><span class="ops-kicker">ROBOT LIVE OPERATIONS</span><h1>机器人直播运维监控</h1><p>集中查看直播机器人画面、设备状态与实时告警</p></div>
+          <div class="ops-refresh"><span>最后刷新 ${formatClock(state.lastRefresh, true)}</span><label><input type="checkbox" ${state.autoRefresh ? "checked" : ""} onchange="robotOps.setAutoRefresh(this.checked)"><i></i>自动刷新 10s</label><button class="ops-button" type="button" onclick="robotOps.refreshNow()">立即刷新</button></div>
+        </header>
+        ${renderFilters()}
+        ${state.selectedHour !== null ? `<div class="ops-linked-filter"><span>已联动：${selectedHourLabel()}</span><button type="button" onclick="robotOps.clearTrendSelection()">清除联动 ×</button></div>` : ""}
+        ${renderMetrics(deviceList, alertList)}
       </section>
-      ${renderTrend()}
+      <section class="ops-fixed-middle">
+        <section class="ops-monitor-layout">
+          ${monitorPanel}
+          ${renderAlerts(alertList)}
+        </section>
+      </section>
+      <section class="ops-fixed-bottom">${renderTrend()}</section>
       ${renderDrawer()}
     </div>`;
   }

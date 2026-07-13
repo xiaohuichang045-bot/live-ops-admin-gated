@@ -253,24 +253,29 @@
   background: #159656;
 }
 
-.live-room-switch-modal { width: min(1080px, calc(100vw - 48px)); }
+.live-room-switch-modal { width: min(1280px, calc(100vw - 48px)); }
 .live-room-switch-toolbar { display: flex; align-items: center; gap: 10px; }
-.live-room-switch-toolbar .input:first-child { width: min(360px, 100%); }
-.live-room-switch-toolbar select { width: 150px; }
-.live-room-switch-summary { display: flex; justify-content: space-between; gap: 12px; margin: 14px 0 10px; color: #6f7d8e; font-size: 12px; }
-.live-room-switch-summary span { color: #52657a; white-space: nowrap; }
-.live-room-switch-table { max-height: min(56vh, 460px); }
-.live-room-switch-table .data-table { min-width: 800px; }
-.live-room-switch-table td:nth-child(4) { max-width: 240px; }
+.live-room-switch-toolbar .input:first-child { width: min(334px, 100%); }
+.live-room-switch-toolbar select { width: 220px; }
+.live-room-switch-table { max-height: min(58vh, 560px); margin-top: 22px; }
+.live-room-switch-table .data-table { min-width: 1160px; }
+.live-room-switch-table td:nth-child(2),
 .live-room-switch-table td:nth-child(4),
-.live-room-switch-table td:nth-child(5) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.live-room-switch-table td:nth-child(7) { white-space: nowrap; }
 .live-room-status { display: inline-flex; align-items: center; min-height: 22px; padding: 0 7px; border-radius: 3px; background: #e5f7ed; color: #168a51; font-size: 12px; }
+.live-room-status.ended { background: #f1f3f5; color: #8b929c; }
 .live-room-switch-empty { padding: 40px 16px !important; color: #8894a3; text-align: center; }
+.live-room-switch-pagination { display: flex; align-items: center; justify-content: flex-end; gap: 18px; margin-top: 18px; color: #69788a; font-size: 12px; }
+.live-room-switch-pagination > div { display: flex; gap: 7px; }
+.live-room-switch-pagination button { min-width: 32px; height: 30px; padding: 0 8px; border: 0; border-radius: 3px; background: #f1f3f6; color: #637185; font: inherit; }
+.live-room-switch-pagination button.active { background: #1e90ff; color: #fff; }
+.live-room-switch-pagination button:disabled { cursor: not-allowed; opacity: 0.45; }
 
 @media (max-width: 720px) {
   .live-room-switch-toolbar { flex-wrap: wrap; }
   .live-room-switch-toolbar .input:first-child { width: 100%; }
   .live-room-switch-toolbar select { flex: 1 1 150px; }
+  .live-room-switch-pagination { align-items: flex-end; flex-direction: column; }
 }
 
 .live-dashboard-grid {
