@@ -2551,6 +2551,7 @@ button.page-box:disabled {
 .script-editor-return-bar {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 14px;
   margin-bottom: 10px;
   padding: 10px 12px;
@@ -2559,7 +2560,14 @@ button.page-box:disabled {
   background: #fff;
 }
 
-.script-editor-return-bar > div {
+.script-editor-return-main {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.script-editor-return-main > div {
   display: grid;
   gap: 3px;
   min-width: 0;

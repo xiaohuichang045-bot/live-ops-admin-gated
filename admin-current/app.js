@@ -45,15 +45,16 @@ let roomModalDraft = { account: "" };
 let productFilters = { shop: "全部店铺", keyword: "" };
 let selectedProductIds = [];
 let roomFilters = { keyword: "", status: "全部" };
-let mapFilters = { keyword: "" };
+let mapFilters = { keyword: "", channelId: "全部渠道" };
 let robotFilters = { keyword: "", mode: "机器人类型", status: "状态" };
 let scriptListFilters = { keyword: "", type: "全部类型", status: "全部状态" };
-let skillFilters = { keyword: "", category: "类型" };
-let showFilters = { keyword: "", status: "状态" };
-let faceFilters = { keyword: "", source: "请选择来源" };
-let materialFilters = { keyword: "", tag: "" };
-let agentFilters = { keyword: "" };
-let singleActionFilters = { keyword: "", type: "全部类型", posture: "全部姿态" };
+let skillFilters = { keyword: "", category: "类型", channelId: "全部渠道" };
+let showFilters = { keyword: "", status: "状态", channelId: "全部渠道" };
+let faceFilters = { keyword: "", source: "请选择来源", channelId: "全部渠道" };
+let materialFilters = { keyword: "", tag: "", channelId: "全部渠道" };
+let agentFilters = { keyword: "", channelId: "全部渠道" };
+let singleActionFilters = { keyword: "", type: "全部类型", posture: "全部姿态", channelId: "全部渠道" };
+let actionGroupFilters = { keyword: "", type: "动作类型", channelId: "全部渠道" };
 let robotSingleActionFilters = { keyword: "", type: "全部类型", posture: "全部姿态" };
 let conversationFilters = { time: "近7天", roomId: "", robotId: "", user: "", keyword: "" };
 let draggingStageIndex = null;
@@ -1028,16 +1029,45 @@ function safePageKey(pageKey) {
   return isCustomerHiddenPage(pageKey) ? "robots" : pageKey;
 }
 
-function visibleChannelResources(items, resourceType, idField = "id") {
-  if (resourceType === "actions") return visiblePlatformActions({ items });
+function resourceChannelFilterValue(filters = {}) {
+  return isPlatformChannel() ? (filters.channelId || "全部渠道") : currentChannelId();
+}
+
+function resourceChannelOptions() {
+  const channels = window.phase2State?.channels || [{ id: "channel-weishi", name: "微视中国", type: "platform", roleLabel: "平台最高权限" }];
+  if (!isPlatformChannel()) {
+    const current = channels.find((channel) => channel.id === currentChannelId()) || channels[0];
+    return [{ value: current.id, label: current.name }];
+  }
+  return [
+    { value: "全部渠道", label: "全部渠道" },
+    ...channels.map((channel) => ({ value: channel.id, label: channel.type === "platform" ? `${channel.name}（平台）` : channel.name })),
+  ];
+}
+
+function resourceChannelFilterHtml(filters, setterName) {
+  const value = resourceChannelFilterValue(filters);
+  const disabled = isPlatformChannel() ? "" : "disabled";
+  return `
+    <select class="select w-180 resource-channel-filter" ${disabled} onchange="${setterName}('channelId', this.value)">
+      ${resourceChannelOptions().map((channel) => `<option value="${escapeHtml(channel.value)}" ${value === channel.value ? "selected" : ""}>${escapeHtml(channel.label)}</option>`).join("")}
+    </select>`;
+}
+
+function resourceVisibleInChannel(item, resourceType, idField, channelId) {
+  const itemId = resourceIdentity(item, idField);
+  if (resourceIsDistributedToChannel(resourceType, itemId, channelId)) return true;
+  if (item.channelId) return item.channelId === channelId;
   const allowed = customerResourceIds[resourceType] || new Set();
-  const currentChannelId = phase2State?.snapshot().currentChannelId || "channel-weishi";
-  return items.filter((item) => {
-    const itemId = resourceIdentity(item, idField);
-    if (resourceIsDistributedToChannel(resourceType, itemId, currentChannelId)) return true;
-    if (item.channelId) return item.channelId === currentChannelId;
-    return isPlatformChannel() ? !allowed.has(String(itemId)) : allowed.has(String(itemId));
-  });
+  if (channelId === "channel-weishi") return !allowed.has(String(itemId));
+  return allowed.has(String(itemId)) && resourceChannelId(resourceType, itemId) === channelId;
+}
+
+function visibleChannelResources(items, resourceType, idField = "id", channelId = currentChannelId()) {
+  if (resourceType === "actions") return visiblePlatformActions({ items, channelId });
+  if (isPlatformChannel() && channelId === "全部渠道") return items.filter((item) => (item.resourceScope || "channel_public") !== "robot_private");
+  const targetChannelId = isPlatformChannel() ? channelId : currentChannelId();
+  return items.filter((item) => resourceVisibleInChannel(item, resourceType, idField, targetChannelId));
 }
 
 function currentChannelId() {
@@ -1094,11 +1124,11 @@ function actionMatchesFilters(action, filters = singleActionFilters) {
     && (posture === "全部姿态" || action.posture === posture);
 }
 
-function visiblePlatformActions({ robot = null, filters = null, items = actions } = {}) {
-  const channelId = currentChannelId();
+function visiblePlatformActions({ robot = null, filters = null, items = actions, channelId = currentChannelId() } = {}) {
+  const allChannels = isPlatformChannel() && channelId === "全部渠道";
   return items
     .filter((action) => (action.resourceScope || "platform_distributed") === "platform_distributed")
-    .filter((action) => platformActionChannelIds(action).includes(channelId))
+    .filter((action) => allChannels || platformActionChannelIds(action).includes(channelId))
     .filter((action) => platformActionSupportsRobot(action, robot))
     .filter((action) => !filters || actionMatchesFilters(action, filters));
 }
@@ -3289,10 +3319,12 @@ function closeConversationDrawer() { document.getElementById("modalRoot").replac
 
 function renderMapPage() {
   const keyword = mapFilters.keyword.trim().toLowerCase();
-  const visibleMaps = visibleChannelResources(exhibitionMaps, "maps").filter((map) => !keyword || [map.id, map.venueName, map.exhibitionName, map.mapName].join(" ").toLowerCase().includes(keyword));
+  const visibleMaps = visibleChannelResources(exhibitionMaps, "maps", "id", resourceChannelFilterValue(mapFilters))
+    .filter((map) => !keyword || [map.id, map.venueName, map.exhibitionName, map.mapName].join(" ").toLowerCase().includes(keyword));
   return `
     <div class="toolbar">
       <div class="filters">
+        ${resourceChannelFilterHtml(mapFilters, "setMapFilter")}
         <input class="input w-220" value="${escapeHtml(mapFilters.keyword)}" placeholder="输入展馆ID或展馆名搜索" oninput="setMapFilter('keyword', this.value)" />
         <button class="btn" type="button" onclick="toast('已查询展览地图')">⌕ 查询</button>
         <button class="btn" type="button" onclick="openMapModal()">＋ 创建展览地图</button>
@@ -3587,11 +3619,14 @@ function renderScriptFlowPage() {
 function renderScriptEditorReturnBar(script) {
   return `
     <div class="script-editor-return-bar">
-      <button class="btn secondary" type="button" onclick="returnToScriptEditorSource()">← 返回${escapeHtml(scriptEditorReturnLabel())}</button>
-      <div>
-        <strong>${escapeHtml(script.name)}</strong>
-        <span>${escapeHtml(script.type)} · ${escapeHtml(anchorName(script.anchorType))}</span>
+      <div class="script-editor-return-main">
+        <button class="btn secondary" type="button" onclick="returnToScriptEditorSource()">← 返回${escapeHtml(scriptEditorReturnLabel())}</button>
+        <div>
+          <strong>${escapeHtml(script.name)}</strong>
+          <span>${escapeHtml(script.type)} · ${escapeHtml(anchorName(script.anchorType))}</span>
+        </div>
       </div>
+      <button class="btn danger" type="button" onclick="openScriptPreview()">整场预览</button>${handoffMark("整场预览入口", "脚本编辑页新增整场预览，进入只读视图后按阶段展开表演和表演单元，便于交付前验稿。", "new")}
     </div>
   `;
 }
@@ -3600,7 +3635,6 @@ function renderScriptEditorFixedActions(script) {
   const disabled = script.isTemplate ? "disabled" : "";
   return `
     <div class="script-editor-fixed-actions">
-      <button class="btn danger" type="button" onclick="openScriptPreview()">整场预览</button>${handoffMark("整场预览入口", "脚本编辑页新增整场预览，进入只读视图后按阶段展开表演和表演单元，便于交付前验稿。", "new")}
       <button class="btn" type="button" ${disabled} onclick="saveAndDeployScript()">保存并下发机器人</button>
     </div>
   `;
@@ -5257,12 +5291,13 @@ function downloadBlob(content, filename, type) {
 
 function renderSkillPage() {
   const keyword = skillFilters.keyword.trim().toLowerCase();
-  const visibleSkills = visibleChannelResources(skills, "skills")
+  const visibleSkills = visibleChannelResources(skills, "skills", "id", resourceChannelFilterValue(skillFilters))
     .filter((skill) => !keyword || [skill.id, skill.name, skill.trigger].join(" ").toLowerCase().includes(keyword))
     .filter((skill) => skillFilters.category === "类型" || skill.category === skillFilters.category);
   return `
     <div class="toolbar">
       <div class="filters">
+        ${resourceChannelFilterHtml(skillFilters, "setSkillFilter")}
         <input class="input w-180" value="${escapeHtml(skillFilters.keyword)}" placeholder="ID/名称" oninput="setSkillFilter('keyword', this.value)" />
         <select class="select w-120" onchange="setSkillFilter('category', this.value)">${["类型", "动作", "表演", "视觉"].map((value) => `<option ${skillFilters.category === value ? "selected" : ""}>${value}</option>`).join("")}</select>
         <button class="btn" onclick="toast('已查询技能')">查询</button>
@@ -5339,12 +5374,13 @@ function deleteSkill(id) {
 
 function renderShowPage() {
   const keyword = showFilters.keyword.trim().toLowerCase();
-  const publicShows = visibleChannelResources(shows.filter((show) => show.owner === "公共模板"), "shows")
+  const publicShows = visibleChannelResources(shows.filter((show) => show.owner === "公共模板"), "shows", "id", resourceChannelFilterValue(showFilters))
     .filter((show) => !keyword || [show.id, show.name].join(" ").toLowerCase().includes(keyword))
     .filter((show) => showFilters.status === "状态" || (showFilters.status === "启用" ? show.status : !show.status));
   return `
     <div class="toolbar">
       <div class="filters">
+        ${resourceChannelFilterHtml(showFilters, "setShowFilter")}
         <input class="input w-220" value="${escapeHtml(showFilters.keyword)}" placeholder="⌕ ID/表演名称/用户昵称" oninput="setShowFilter('keyword', this.value)" />
         <select class="select w-180"><option>公共模板</option></select>
         <select class="select w-180" onchange="setShowFilter('status', this.value)">${["状态", "启用", "停用"].map((value) => `<option ${showFilters.status === value ? "selected" : ""}>${value}</option>`).join("")}</select>
@@ -5461,11 +5497,12 @@ function renderActionPage() {
 }
 
 function renderSingleActionList() {
-  const visibleActions = visiblePlatformActions({ filters: singleActionFilters });
+  const visibleActions = visiblePlatformActions({ filters: singleActionFilters, channelId: resourceChannelFilterValue(singleActionFilters) });
   const platform = isPlatformChannel();
   return `
     <div class="toolbar">
       <div class="filters">
+        ${resourceChannelFilterHtml(singleActionFilters, "setSingleActionFilter")}
         <input class="input w-220" value="${escapeHtml(singleActionFilters.keyword)}" placeholder="ID/动作名称" oninput="setSingleActionFilter('keyword', this.value)" />
         <select class="select w-150" onchange="setSingleActionFilter('type', this.value)">${["全部类型", "站姿", "坐姿", "站坐通用"].map((value) => `<option ${singleActionFilters.type === value ? "selected" : ""}>${value}</option>`).join("")}</select>
         <select class="select w-150" onchange="setSingleActionFilter('posture', this.value)">${["全部姿态", "站姿", "坐姿", "站坐通用"].map((value) => `<option ${singleActionFilters.posture === value ? "selected" : ""}>${value}</option>`).join("")}</select>
@@ -5506,12 +5543,16 @@ function setSingleActionFilter(key, value) {
 }
 
 function renderActionGroupList() {
-  const visibleGroups = visibleChannelResources(actionGroups, "actionGroups");
+  const keyword = actionGroupFilters.keyword.trim().toLowerCase();
+  const visibleGroups = visibleChannelResources(actionGroups, "actionGroups", "id", resourceChannelFilterValue(actionGroupFilters))
+    .filter((group) => !keyword || [group.id, group.name, group.desc].join(" ").toLowerCase().includes(keyword))
+    .filter((group) => actionGroupFilters.type === "动作类型" || (group.type || group.posture) === actionGroupFilters.type);
   return `
     <div class="toolbar">
       <div class="filters">
-        <input class="input w-220" placeholder="ID/动作组名称" />
-        <select class="select w-150"><option>动作类型</option><option>站姿</option><option>坐姿</option><option>站坐通用</option></select>
+        ${resourceChannelFilterHtml(actionGroupFilters, "setActionGroupFilter")}
+        <input class="input w-220" value="${escapeHtml(actionGroupFilters.keyword)}" placeholder="ID/动作组名称" oninput="setActionGroupFilter('keyword', this.value)" />
+        <select class="select w-150" onchange="setActionGroupFilter('type', this.value)">${["动作类型", "站姿", "坐姿", "站坐通用"].map((value) => `<option ${actionGroupFilters.type === value ? "selected" : ""}>${value}</option>`).join("")}</select>
         <button class="btn" onclick="openActionGroupModal()">＋ 新增动作组</button>${handoffMark("多动作组合编排", "动作管理保留多动作组合的新增、编辑、删除、排序和时间间隔配置，用于把平台单一动作编排成可复用组合。", "new")}
       </div>
     </div>
@@ -5537,14 +5578,20 @@ function renderActionGroupList() {
   `;
 }
 
+function setActionGroupFilter(key, value) {
+  actionGroupFilters[key] = value;
+  renderApp();
+}
+
 function renderFacePage() {
   const keyword = faceFilters.keyword.trim().toLowerCase();
-  const visibleFaces = visibleChannelResources(faces, "faces", "recognitionId")
+  const visibleFaces = visibleChannelResources(faces, "faces", "recognitionId", resourceChannelFilterValue(faceFilters))
     .filter((face) => !keyword || [face.id, face.recognitionId, face.name, face.nickname].join(" ").toLowerCase().includes(keyword))
     .filter((face) => faceFilters.source === "请选择来源" || face.source === faceFilters.source);
   return `
     <div class="toolbar">
       <div class="filters">
+        ${resourceChannelFilterHtml(faceFilters, "setFaceFilter")}
         <input class="input w-260" value="${escapeHtml(faceFilters.keyword)}" placeholder="输入名称、昵称或识别人ID" oninput="setFaceFilter('keyword', this.value)" />
         <select class="select w-150" onchange="setFaceFilter('source', this.value)">${["请选择来源", "后台", "机器人自建"].map((value) => `<option ${faceFilters.source === value ? "selected" : ""}>${value}</option>`).join("")}</select>
         <button class="btn" onclick="toast('已查询人脸')">⌕ 查询</button>
@@ -5591,12 +5638,13 @@ function faceRow(face, context = "library") {
 function renderMaterialPage() {
   const keyword = materialFilters.keyword.trim().toLowerCase();
   const tag = materialFilters.tag.trim().toLowerCase();
-  const visibleMaterials = visibleChannelResources(materials, "materials")
+  const visibleMaterials = visibleChannelResources(materials, "materials", "id", resourceChannelFilterValue(materialFilters))
     .filter((material) => !keyword || [material.id, material.fileName].join(" ").toLowerCase().includes(keyword))
     .filter((material) => !tag || String(material.tag || "").toLowerCase().includes(tag));
   return `
     <div class="toolbar">
       <div class="filters">
+        ${resourceChannelFilterHtml(materialFilters, "setMaterialFilter")}
         <input class="input w-220" value="${escapeHtml(materialFilters.keyword)}" placeholder="⌕ 输入音频名称" oninput="setMaterialFilter('keyword', this.value)" />
         <input class="input w-220" value="${escapeHtml(materialFilters.tag)}" placeholder="⌕ 输入标签搜索" oninput="setMaterialFilter('tag', this.value)" />
         <button class="btn" onclick="toast('已查询素材')">查询</button>
@@ -5630,10 +5678,12 @@ function setMaterialFilter(key, value) {
 
 function renderAgentPage() {
   const keyword = agentFilters.keyword.trim().toLowerCase();
-  const visibleAgents = visibleChannelResources(agents, "agents").filter((agent) => !keyword || [agent.id, agent.name, agent.appId].join(" ").toLowerCase().includes(keyword));
+  const visibleAgents = visibleChannelResources(agents, "agents", "id", resourceChannelFilterValue(agentFilters))
+    .filter((agent) => !keyword || [agent.id, agent.name, agent.appId].join(" ").toLowerCase().includes(keyword));
   return `
     <div class="toolbar">
       <div class="filters">
+        ${resourceChannelFilterHtml(agentFilters, "setAgentFilter")}
         <input class="input w-260" value="${escapeHtml(agentFilters.keyword)}" placeholder="⌕ 输入智能体id或名称搜索..." oninput="setAgentFilter('keyword', this.value)" />
       </div>
       <button class="btn" onclick="openAgentModal()">创建智能体</button>
