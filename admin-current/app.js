@@ -162,7 +162,7 @@ let featureListRows = initialFeatureListRows();
 let featureListFilters = { keyword: "", client: "全部端", module1: "全部模块", phase: "全部阶段", priority: "全部优先级" };
 let changelogView = "timeline";
 let changelogStatusFilter = "全部版本";
-let phase2FeatureFilters = { keyword: "", module: "全部模块", type: "全部变化", focus: "全部重点" };
+let phase2FeatureFilters = { keyword: "", module: "全部模块", type: "全部变化", priority: "全部优先级" };
 let prototypePreviewVersionId = "";
 const paginationState = {};
 const phase2FeatureRows = [
@@ -2539,8 +2539,9 @@ function filteredPhase2FeatureRows() {
     const matchesKeyword = !keyword || [row.id, row.module, row.type, row.point, row.desc, row.compare].join(" ").toLowerCase().includes(keyword);
     const matchesModule = phase2FeatureFilters.module === "全部模块" || row.module === phase2FeatureFilters.module;
     const matchesType = phase2FeatureFilters.type === "全部变化" || row.type === phase2FeatureFilters.type;
-    const matchesFocus = phase2FeatureFilters.focus === "全部重点" || (phase2FeatureFilters.focus === "仅开发重点" && row.focus);
-    return matchesKeyword && matchesModule && matchesType && matchesFocus;
+    const priority = row.focus ? "P0" : "P1";
+    const matchesPriority = phase2FeatureFilters.priority === "全部优先级" || phase2FeatureFilters.priority === priority;
+    return matchesKeyword && matchesModule && matchesType && matchesPriority;
   });
 }
 
@@ -2550,7 +2551,7 @@ function setPhase2FeatureFilter(field, value) {
 }
 
 function clearPhase2FeatureFilters() {
-  phase2FeatureFilters = { keyword: "", module: "全部模块", type: "全部变化", focus: "全部重点" };
+  phase2FeatureFilters = { keyword: "", module: "全部模块", type: "全部变化", priority: "全部优先级" };
   renderApp();
 }
 
@@ -2577,7 +2578,7 @@ function openPhase2FeatureDrawer(featureId) {
           <div class="phase2-feature-tags">
             <span>${escapeHtml(row.module)}</span>
             <span class="${phase2FeatureTypeClass(row.type)}">${escapeHtml(row.type)}</span>
-            <span class="${row.focus ? "focus" : "neutral"}">${row.focus ? "开发重点" : "常规项"}</span>
+            <span class="${row.focus ? "focus" : "neutral"}">${row.focus ? "P0" : "P1"}</span>
           </div>
           <section class="phase2-feature-detail-block">
             <h3>功能说明</h3>
@@ -2619,7 +2620,7 @@ function renderPrototypeVersionPreviewPage() {
 function renderPhase2FeatureListPage() {
   const moduleOptions = ["全部模块", ...Array.from(new Set(phase2FeatureRows.map((row) => row.module)))];
   const rows = filteredPhase2FeatureRows();
-  const hasActiveFilters = phase2FeatureFilters.keyword || phase2FeatureFilters.module !== "全部模块" || phase2FeatureFilters.type !== "全部变化" || phase2FeatureFilters.focus !== "全部重点";
+  const hasActiveFilters = phase2FeatureFilters.keyword || phase2FeatureFilters.module !== "全部模块" || phase2FeatureFilters.type !== "全部变化" || phase2FeatureFilters.priority !== "全部优先级";
   return `
     <div class="changelog-page">
       <section class="changelog-head feature-list-head">
@@ -2641,11 +2642,11 @@ function renderPhase2FeatureListPage() {
           <input class="input phase2-feature-search" value="${escapeHtml(phase2FeatureFilters.keyword)}" placeholder="搜索功能 ID、模块或功能点" oninput="setPhase2FeatureFilter('keyword', this.value)" />
           <select class="select" onchange="setPhase2FeatureFilter('module', this.value)">${moduleOptions.map((moduleName) => `<option value="${escapeHtml(moduleName)}" ${phase2FeatureFilters.module === moduleName ? "selected" : ""}>${escapeHtml(moduleName)}</option>`).join("")}</select>
           <select class="select" onchange="setPhase2FeatureFilter('type', this.value)">${["全部变化", "新增", "优化", "调整"].map((type) => `<option value="${type}" ${phase2FeatureFilters.type === type ? "selected" : ""}>${type}</option>`).join("")}</select>
-          <select class="select" onchange="setPhase2FeatureFilter('focus', this.value)">${["全部重点", "仅开发重点"].map((focus) => `<option value="${focus}" ${phase2FeatureFilters.focus === focus ? "selected" : ""}>${focus}</option>`).join("")}</select>
+          <select class="select" onchange="setPhase2FeatureFilter('priority', this.value)">${["全部优先级", "P0", "P1"].map((priority) => `<option value="${priority}" ${phase2FeatureFilters.priority === priority ? "selected" : ""}>${priority}</option>`).join("")}</select>
           ${hasActiveFilters ? `<button class="btn secondary phase2-filter-reset" type="button" onclick="clearPhase2FeatureFilters()">清空筛选</button>` : ""}
         </div>
       </section>
-      <div class="table-wrap feature-table-wrap phase2-feature-table-wrap"><table class="data-table phase2-feature-table"><thead><tr><th>功能点</th><th>模块</th><th>变化类型</th><th>开发重点</th><th>功能ID</th></tr></thead><tbody>${rows.length ? rows.map((row) => `<tr class="phase2-feature-row" tabindex="0" role="button" aria-label="查看 ${escapeHtml(row.point)} 详情" onclick="openPhase2FeatureDrawer('${row.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openPhase2FeatureDrawer('${row.id}')}\"><td class="left"><strong>${row.point}</strong><span class="phase2-row-hint">查看详情</span></td><td>${row.module}</td><td><span class="mini-tag ${phase2FeatureTypeClass(row.type)}">${row.type}</span></td><td>${row.focus ? '<span class="mini-tag red">重点</span>' : '<span class="mini-tag gray">常规</span>'}</td><td>${row.id}</td></tr>`).join("") : `<tr><td colspan="5" class="phase2-feature-empty">当前筛选下没有功能点</td></tr>`}</tbody></table></div>
+      <div class="table-wrap feature-table-wrap phase2-feature-table-wrap"><table class="data-table phase2-feature-table"><thead><tr><th>功能ID</th><th>模块</th><th>功能点</th><th>变化类型</th><th>优先级</th><th>功能描述</th><th>上一版本对比描述</th></tr></thead><tbody>${rows.length ? rows.map((row) => `<tr class="phase2-feature-row" tabindex="0" role="button" aria-label="查看 ${escapeHtml(row.point)} 详情" onclick="openPhase2FeatureDrawer('${row.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openPhase2FeatureDrawer('${row.id}')}\"><td>${row.id}</td><td>${row.module}</td><td class="left"><strong>${row.point}</strong><span class="phase2-row-hint">查看详情</span></td><td><span class="mini-tag ${phase2FeatureTypeClass(row.type)}">${row.type}</span></td><td><span class="mini-tag ${row.focus ? "red" : "gray"}">${row.focus ? "P0" : "P1"}</span></td><td class="left">${row.desc}</td><td class="left">${row.compare}</td></tr>`).join("") : `<tr><td colspan="7" class="phase2-feature-empty">当前筛选下没有功能点</td></tr>`}</tbody></table></div>
     </div>`;
 }
 
