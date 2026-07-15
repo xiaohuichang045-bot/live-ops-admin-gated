@@ -107,6 +107,7 @@
 
   function refresh(message) {
     save();
+    global.dispatchEvent(new CustomEvent("phase2-state-changed", { detail: snapshot() }));
     if (message && typeof global.toast === "function") global.toast(message);
     if (typeof global.renderApp === "function") global.renderApp();
   }

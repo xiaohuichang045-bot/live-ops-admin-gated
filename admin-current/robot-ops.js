@@ -3,24 +3,24 @@
 
   const filterOptions = {
     version: ["全部", "R版", "Z版", "AGV版"],
-    onlineState: ["全部", "在线", "离线", "异常"],
-    alertType: ["全部", "网络异常", "电机异常", "音频异常", "推流异常", "系统异常"],
+    deviceScope: ["全部设备", "当前异常（全部）", "网络异常", "电机异常", "扬声器异常", "麦克风异常", "推流异常", "系统异常"],
+    broadcast: ["全部", "直播中", "录播中", "未开播"],
     hours: [1, 3, 6, 12, 24],
   };
 
   const seedDevices = [
     device("DT-LIVE-001", "星栖", "Z版", "直播", "在线", "正常", "正常", "正常", "正常", "云紫", "2026-07-10 18:59:48"),
-    device("DT-LIVE-002", "知鹤", "R版", "对话", "在线", "正常", "正常", "正常", "正常", "海蓝", "2026-07-10 18:59:42"),
+    device("DT-LIVE-002", "知鹤", "R版", "直播", "在线", "正常", "正常", "正常", "正常", "海蓝", "2026-07-10 18:59:42"),
     device("DT-LIVE-003", "小暖", "Z版", "直播", "异常", "正常", "正常", "正常", "3号电机异常", "霓虹", "2026-07-10 18:59:36", "3号电机异常"),
     device("DT-LIVE-004", "柳如春", "R版", "直播", "异常", "网络异常", "正常", "正常", "正常", "暖橙", "2026-07-10 18:59:31", "网络连接中断"),
-    device("DT-LIVE-005", "云涵", "Z版", "对话", "在线", "正常", "未检测", "正常", "正常", "薄荷", "2026-07-10 18:59:24"),
+    device("DT-LIVE-005", "云涵", "Z版", "直播", "在线", "正常", "未检测", "正常", "正常", "薄荷", "2026-07-10 18:59:24"),
     device("DT-LIVE-006", "东哥外卖", "AGV版", "直播", "离线", "离线", "未检测", "未检测", "未检测", "深空", "2026-07-10 18:52:10", "设备离线"),
     device("DT-LIVE-007", "若琳", "Z版", "直播", "异常", "正常", "正常", "扬声器异常", "正常", "青绿", "2026-07-10 18:59:08", "扬声器无输出"),
     device("DT-LIVE-008", "小兰", "R版", "直播", "异常", "正常", "正常", "正常", "正常", "莓红", "2026-07-10 18:58:55", "推流异常"),
-    device("DT-LIVE-009", "鲁博士", "Z版", "对话", "在线", "正常", "正常", "正常", "正常", "紫晶", "2026-07-10 18:58:39"),
+    device("DT-LIVE-009", "鲁博士", "Z版", "直播", "在线", "正常", "正常", "正常", "正常", "紫晶", "2026-07-10 18:58:39"),
     device("DT-LIVE-010", "关帝圣君", "AGV版", "直播", "在线", "正常", "正常", "正常", "正常", "金棕", "2026-07-10 18:58:21"),
     device("DT-LIVE-011", "AI萌宠", "R版", "直播", "异常", "正常", "麦克风异常", "正常", "正常", "靛蓝", "2026-07-10 18:58:02", "麦克风无输入"),
-    device("DT-LIVE-012", "关羽", "Z版", "对话", "离线", "离线", "未检测", "未检测", "未检测", "银灰", "2026-07-10 18:48:43", "设备离线"),
+    device("DT-LIVE-012", "关羽", "Z版", "直播", "离线", "离线", "未检测", "未检测", "未检测", "银灰", "2026-07-10 18:48:43", "设备离线"),
     device("GFWL-001", "绛央", "AGV版", "直播", "在线", "正常", "正常", "正常", "正常", "金棕", "2026-07-10 18:59:52"),
     device("GFWL-002", "青禾", "Z版", "直播", "在线", "正常", "正常", "正常", "正常", "青绿", "2026-07-11 09:26:18"),
   ];
@@ -33,51 +33,47 @@
     alert("ALT-002", "DT-LIVE-006", 7, "严重", "系统异常", "设备心跳中断，设备离线"),
     alert("ALT-003", "DT-LIVE-004", 10, "高", "网络异常", "网络连接中断"),
     alert("ALT-004", "DT-LIVE-008", 14, "高", "推流异常", "直播推流异常中断"),
-    alert("ALT-005", "DT-LIVE-011", 19, "中", "音频异常", "麦克风无输入"),
-    alert("ALT-006", "DT-LIVE-007", 25, "中", "音频异常", "扬声器无输出"),
+    alert("ALT-005", "DT-LIVE-011", 19, "中", "麦克风异常", "麦克风无输入"),
+    alert("ALT-006", "DT-LIVE-007", 25, "中", "扬声器异常", "扬声器无输出"),
     alert("ALT-007", "DT-LIVE-012", 34, "高", "系统异常", "设备离线"),
     alert("ALT-008", "DT-LIVE-003", 48, "中", "电机异常", "3号电机温度过高"),
     alert("ALT-009", "DT-LIVE-004", 64, "中", "网络异常", "网络延迟过高"),
     alert("ALT-010", "DT-LIVE-008", 78, "高", "推流异常", "推流帧率低于阈值"),
-    alert("ALT-011", "DT-LIVE-011", 92, "中", "音频异常", "麦克风输入音量过低"),
+    alert("ALT-011", "DT-LIVE-011", 92, "中", "麦克风异常", "麦克风输入音量过低"),
     alert("ALT-012", "DT-LIVE-003", 110, "高", "电机异常", "2号电机响应超时"),
     alert("ALT-013", "DT-LIVE-006", 132, "严重", "系统异常", "设备异常重启"),
     alert("ALT-014", "DT-LIVE-004", 156, "中", "网络异常", "网络丢包率过高"),
-    alert("ALT-015", "DT-LIVE-007", 181, "中", "音频异常", "扬声器输出音量异常"),
+    alert("ALT-015", "DT-LIVE-007", 181, "中", "扬声器异常", "扬声器输出音量异常"),
     alert("ALT-016", "DT-LIVE-008", 207, "高", "推流异常", "推流服务连接失败"),
     alert("ALT-017", "DT-LIVE-003", 239, "中", "电机异常", "1号电机电流波动"),
-    alert("ALT-018", "DT-LIVE-011", 276, "中", "音频异常", "麦克风检测异常"),
+    alert("ALT-018", "DT-LIVE-011", 276, "中", "麦克风异常", "麦克风检测异常"),
     alert("ALT-019", "DT-LIVE-004", 314, "高", "网络异常", "网络连接短暂中断"),
     alert("ALT-020", "DT-LIVE-009", 351, "低", "系统异常", "运行内存占用过高"),
     alert("ALT-021", "DT-LIVE-003", 398, "高", "电机异常", "4号电机校准失败"),
     alert("ALT-022", "DT-LIVE-008", 446, "中", "推流异常", "推流码率异常"),
-    alert("ALT-023", "DT-LIVE-007", 503, "中", "音频异常", "扬声器检测失败"),
+    alert("ALT-023", "DT-LIVE-007", 503, "中", "扬声器异常", "扬声器检测失败"),
     alert("ALT-024", "DT-LIVE-004", 571, "中", "网络异常", "网络延迟过高"),
     alert("ALT-025", "DT-LIVE-006", 642, "严重", "系统异常", "设备服务异常退出"),
     alert("ALT-026", "DT-LIVE-003", 721, "中", "电机异常", "3号电机阻力异常"),
-    alert("ALT-027", "DT-LIVE-011", 809, "中", "音频异常", "麦克风输入中断"),
+    alert("ALT-027", "DT-LIVE-011", 809, "中", "麦克风异常", "麦克风输入中断"),
     alert("ALT-028", "DT-LIVE-008", 903, "高", "推流异常", "推流认证失效"),
     alert("ALT-029", "DT-LIVE-004", 1015, "中", "网络异常", "网络抖动明显"),
     alert("ALT-030", "DT-LIVE-003", 1136, "高", "电机异常", "2号电机异常停转"),
     alert("ALT-031", "DT-LIVE-009", 1260, "低", "系统异常", "磁盘空间不足"),
-    alert("ALT-032", "DT-LIVE-007", 1374, "中", "音频异常", "音频设备初始化失败"),
+    alert("ALT-032", "DT-LIVE-007", 1374, "中", "扬声器异常", "音频设备初始化失败"),
   ];
 
   const state = {
-    filters: { channel: "channel-weishi", version: "全部", onlineState: "全部", alertType: "全部", hours: 6 },
+    filters: { channel: "channel-weishi", deviceScope: "全部设备", broadcast: "全部", hours: 6 },
     viewMode: "grid",
-    page: 1,
-    pageSize: 12,
     fullscreen: false,
-    selectedHour: null,
     selectedDeviceId: "",
-    autoRefresh: true,
     lastRefresh: new Date(),
-    refreshTimer: null,
   };
 
-  function device(id, name, version, mode, onlineState, network, microphone, speaker, motor, scene, lastReportedAt, currentAlert = "") {
-    return { id, name, type: "直播", version, mode, onlineState, network, microphone, speaker, motor, scene, lastReportedAt, currentAlert };
+  function device(id, name, version, _mode, onlineState, network, microphone, speaker, motor, scene, lastReportedAt, currentAlert = "") {
+    const stream = onlineState === "离线" ? "未检测" : currentAlert.includes("推流") ? "推流异常" : "正常";
+    return { id, name, type: "直播", version, mode: "直播", onlineState, network, microphone, speaker, motor, stream, scene, lastReportedAt, currentAlert };
   }
 
   function buildDevicePool() {
@@ -94,7 +90,7 @@
       const microphone = onlineState === "离线" ? "未检测" : alertType.includes("麦克风") ? "麦克风异常" : "正常";
       const speaker = onlineState === "离线" ? "未检测" : alertType.includes("扬声器") ? "扬声器异常" : "正常";
       const motor = onlineState === "离线" ? "未检测" : alertType.includes("电机") ? "3号电机异常" : "正常";
-      return device(`DT-LIVE-${number}`, name, version, version === "AGV版" ? "导览" : "直播", onlineState, network, microphone, speaker, motor, scenes[index % scenes.length], `2026-07-10 18:${String(58 - (index % 50)).padStart(2, "0")}:${String((index * 7) % 60).padStart(2, "0")}`, alertType);
+      return device(`DT-LIVE-${number}`, name, version, "直播", onlineState, network, microphone, speaker, motor, scenes[index % scenes.length], `2026-07-10 18:${String(58 - (index % 50)).padStart(2, "0")}:${String((index * 7) % 60).padStart(2, "0")}`, alertType);
     });
     return [...seedDevices, ...generated].slice(0, 52);
   }
@@ -120,22 +116,59 @@
     return devices.find((item) => item.id === id);
   }
 
-  function severityRank(item) {
-    if (item.severity === "严重") return 0;
-    const linkedDevice = deviceById(item.deviceId);
-    if (linkedDevice?.onlineState === "离线") return 1;
-    return { 电机异常: 2, 网络异常: 3, 音频异常: 4, 推流异常: 5, 系统异常: 6 }[item.type] ?? 7;
-  }
-
   function alertTimestamp(item) {
     if (item.at) return new Date(item.at);
     return new Date(state.lastRefresh.getTime() - item.minutesAgo * 60 * 1000);
+  }
+
+  function alertDurationSeconds(item) {
+    const ageSeconds = Math.max(1, Math.round(item.minutesAgo * 60));
+    if (item.phase2) return ageSeconds;
+    const sequence = Number(String(item.id).match(/(\d+)$/)?.[1] || 1);
+    return Math.min(ageSeconds, 90 + ((sequence * 97) % 1100));
   }
 
   function formatClock(date, withDate = false) {
     const pad = (value) => String(value).padStart(2, "0");
     const time = `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
     return withDate ? `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${time}` : time;
+  }
+
+  function prototypeVideoSource(item, currentMode) {
+    if (currentMode !== "live") return currentMode;
+    const sequence = Number(robotSequenceId(item.id));
+    return sequence > 14 && sequence % 13 === 4 && item.onlineState !== "离线" ? "recorded_manual" : "live";
+  }
+
+  function broadcastStateFor(item) {
+    if (["recorded_manual", "recorded_auto", "recovering"].includes(item.videoSource)) return "录播中";
+    const sequence = Number(robotSequenceId(item.id));
+    if (item.onlineState === "离线" || (sequence > 14 && sequence % 7 === 0)) return "未开播";
+    return "直播中";
+  }
+
+  function formatDuration(totalSeconds) {
+    const pad = (value) => String(value).padStart(2, "0");
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    return `${pad(hours)}:${pad(minutes)}:${pad(totalSeconds % 60)}`;
+  }
+
+  function broadcastRuntimeFor(item) {
+    if (item.broadcastState === "未开播") return { duration: "00:00:00", script: "未运行", stage: "等待开播" };
+    const sequence = Number(robotSequenceId(item.id)) || 1;
+    const scripts = ["晚间互动场", "美妆好物专场", "科普小课堂", "国风文化讲解", "宠物日常互动", "产品讲解专场"];
+    const stages = ["开场互动", "主题讲解", "知识问答", "产品讲解", "弹幕互动"];
+    return {
+      duration: formatDuration(1800 + ((sequence * 173) % 7200)),
+      script: item.broadcastState === "录播中" ? "时尚穿搭录播" : scripts[sequence % scripts.length],
+      stage: item.broadcastState === "录播中" ? "录播内容播放" : stages[sequence % stages.length],
+    };
+  }
+
+  function enrichBroadcastState(item) {
+    const broadcastState = broadcastStateFor(item);
+    return { ...item, broadcastState, ...broadcastRuntimeFor({ ...item, broadcastState }) };
   }
 
   function baseDevices() {
@@ -145,21 +178,28 @@
     return devices.map((item) => {
       const room = global.phase2State?.roomForRobot(item.id);
       const video = room ? global.phase2State.videoState(room.id) : null;
-      if (!video?.faultType) return { ...item, channelId: room?.channelId || "channel-weishi", videoSource: video?.mode || "live" };
-      const next = { ...item, channelId: room?.channelId || "channel-weishi", onlineState: "异常", currentAlert: video.faultType, videoSource: video.mode };
+      const videoSource = prototypeVideoSource(item, video?.mode || "live");
+      if (!video?.faultType) return enrichBroadcastState({ ...item, channelId: room?.channelId || "channel-weishi", videoSource });
+      const next = { ...item, channelId: room?.channelId || "channel-weishi", onlineState: "异常", currentAlert: video.faultType, videoSource };
       if (video.faultType === "网络异常") next.network = "网络异常";
+      if (video.faultType === "麦克风异常") next.microphone = "麦克风异常";
       if (video.faultType === "扬声器异常") next.speaker = "扬声器异常";
       if (video.faultType === "电机异常") next.motor = "电机异常";
-      return next;
+      if (video.faultType === "推流异常") next.stream = "推流异常";
+      return enrichBroadcastState(next);
     }).filter((item) => {
       if (selectedChannelId !== "全部" && item.channelId !== selectedChannelId) return false;
-      const versionMatch = state.filters.version === "全部" || item.version === state.filters.version;
-      const onlineMatch = state.filters.onlineState === "全部" || item.onlineState === state.filters.onlineState;
-      return versionMatch && onlineMatch;
+      return true;
     }).sort((a, b) => liveRoomAvailabilityRank(a) - liveRoomAvailabilityRank(b));
   }
 
-  function baseAlerts() {
+  function selectedAlertType() {
+    return filterOptions.deviceScope.includes(state.filters.deviceScope) && !["全部设备", "当前异常（全部）"].includes(state.filters.deviceScope)
+      ? state.filters.deviceScope
+      : "全部类型";
+  }
+
+  function allAlerts() {
     const allowedDeviceIds = new Set(baseDevices().map((item) => item.id));
     const phase2Alerts = (global.phase2State?.snapshot().alerts || [])
       .filter((item) => !item.resolved)
@@ -168,40 +208,48 @@
         deviceId: item.robotId,
         minutesAgo: Math.max(0, (Date.now() - new Date(item.at).getTime()) / 60000),
         severity: item.severity,
-        type: item.type === "扬声器异常" ? "音频异常" : item.type,
+        type: item.type,
         message: item.message,
         at: item.at,
         phase2: true,
       }));
     return [...phase2Alerts, ...alerts]
-      .filter((item) => item.minutesAgo <= state.filters.hours * 60)
-      .filter((item) => state.filters.alertType === "全部" || item.type === state.filters.alertType)
       .filter((item) => allowedDeviceIds.has(item.deviceId))
-      .sort((a, b) => severityRank(a) - severityRank(b) || a.minutesAgo - b.minutesAgo);
+      .sort((a, b) => a.minutesAgo - b.minutesAgo);
+  }
+
+  function baseAlerts() {
+    const alertType = selectedAlertType();
+    return allAlerts()
+      .filter((item) => item.minutesAgo <= state.filters.hours * 60)
+      .filter((item) => alertType === "全部类型" || item.type === alertType);
   }
 
   function visibleAlerts() {
-    const list = baseAlerts();
-    if (state.selectedHour === null) return list;
-    return list.filter((item) => Math.floor(item.minutesAgo / 60) === state.selectedHour);
+    return baseAlerts();
+  }
+
+  function scopedDevices() {
+    const list = baseDevices();
+    return state.filters.deviceScope === "全部设备" ? list : list.filter((item) => deviceMatchesScope(item, state.filters.deviceScope));
   }
 
   function visibleDevices() {
-    const list = baseDevices();
-    const shouldFilterByAlerts = state.filters.alertType !== "全部" || state.selectedHour !== null;
-    if (!shouldFilterByAlerts) return list;
-    const deviceIds = new Set(visibleAlerts().map((item) => item.deviceId));
-    return list.filter((item) => deviceIds.has(item.id));
+    const list = scopedDevices();
+    return state.filters.broadcast === "全部" ? list : list.filter((item) => item.broadcastState === state.filters.broadcast);
   }
 
-  function ensureRefreshTimer() {
-    if (state.refreshTimer) global.clearInterval(state.refreshTimer);
-    state.refreshTimer = null;
-    if (!state.autoRefresh) return;
-    state.refreshTimer = global.setInterval(() => {
-      state.lastRefresh = new Date();
-      if (global.location?.hash === "#robot-ops" && typeof global.renderApp === "function") global.renderApp();
-    }, 10000);
+  function deviceMatchesScope(item, scope) {
+    const currentAlert = String(item.currentAlert || "");
+    const componentAbnormal = [item.network, item.microphone, item.speaker, item.motor, item.stream].some((value) => String(value).includes("异常"));
+    if (scope === "当前异常（全部）") return item.onlineState !== "在线" || componentAbnormal || Boolean(currentAlert);
+    if (scope === "网络异常") return String(item.network).includes("异常") || currentAlert.includes("网络");
+    if (scope === "电机异常") return String(item.motor).includes("异常") || currentAlert.includes("电机");
+    if (scope === "扬声器异常") return String(item.speaker).includes("异常") || currentAlert.includes("扬声器");
+    if (scope === "麦克风异常") return String(item.microphone).includes("异常") || currentAlert.includes("麦克风");
+    if (scope === "推流异常") return String(item.stream).includes("异常") || currentAlert.includes("推流");
+    if (scope === "系统异常") return item.onlineState === "离线" || ["系统", "设备", "服务"].some((keyword) => currentAlert.includes(keyword));
+    return true;
   }
 
   function rerender() {
@@ -211,29 +259,12 @@
   function setFilter(key, value) {
     if (!Object.hasOwn(state.filters, key)) return;
     state.filters[key] = key === "hours" ? Number(value) : value;
-    state.page = 1;
-    state.selectedHour = null;
-    state.selectedDeviceId = "";
-    rerender();
-  }
-
-  function resetFilters() {
-    const currentChannelId = global.phase2State?.snapshot().currentChannelId || "channel-weishi";
-    state.filters = { channel: global.phase2State?.isPlatformChannel?.() ? "channel-weishi" : currentChannelId, version: "全部", onlineState: "全部", alertType: "全部", hours: 6 };
-    state.page = 1;
-    state.selectedHour = null;
     state.selectedDeviceId = "";
     rerender();
   }
 
   function setView(mode) {
     state.viewMode = mode === "list" ? "list" : "grid";
-    state.page = 1;
-    rerender();
-  }
-
-  function setPage(page) {
-    state.page = Math.max(1, Number(page) || 1);
     rerender();
   }
 
@@ -249,10 +280,9 @@
     if (typeof global.toast === "function") global.toast("运维数据已刷新");
   }
 
-  function setAutoRefresh(enabled) {
-    state.autoRefresh = Boolean(enabled);
-    ensureRefreshTimer();
-    rerender();
+  function applyRealtimeUpdate() {
+    state.lastRefresh = new Date();
+    if (global.location.hash === "#robot-ops") rerender();
   }
 
   function openDevice(deviceId) {
@@ -268,37 +298,14 @@
   function locateAlert(alertId) {
     const item = baseAlerts().find((entry) => entry.id === alertId);
     if (!item) return;
-    state.viewMode = "grid";
-    state.page = pageForDevice(item.deviceId, visibleDevices());
     state.selectedDeviceId = item.deviceId;
     rerender();
-    global.requestAnimationFrame?.(() => {
-      document.querySelector(`[data-ops-device="${item.deviceId}"]`)?.scrollIntoView({ behavior: "smooth", block: "center" });
-    });
-  }
-
-  function toggleHour(hourOffset) {
-    state.selectedHour = state.selectedHour === hourOffset ? null : hourOffset;
-    state.page = 1;
-    state.selectedDeviceId = "";
-    rerender();
-  }
-
-  function clearTrendSelection() {
-    state.selectedHour = null;
-    state.page = 1;
-    rerender();
-  }
-
-  function pageForDevice(deviceId, list) {
-    const index = list.findIndex((item) => item.id === deviceId);
-    return index < 0 ? 1 : Math.floor(index / state.pageSize) + 1;
   }
 
   function statusTone(value) {
-    if (["正常", "在线"].includes(value)) return "ok";
+    if (["正常", "在线", "直播中"].includes(value)) return "ok";
     if (["异常"].includes(value) || String(value).includes("异常")) return "danger";
-    if (["离线", "未检测"].includes(value)) return "muted";
+    if (["离线", "未检测", "未开播"].includes(value)) return "muted";
     return "warning";
   }
 
@@ -314,18 +321,32 @@
     return { live: "实时画面", recorded_manual: "人工录播", recorded_auto: "故障自动录播", recovering: "恢复检测中" }[mode] || "实时画面";
   }
 
+  function broadcastSourceLabel(item) {
+    return item.broadcastState === "未开播" ? "画面未开启" : videoSourceLabel(item.videoSource);
+  }
+
+  function broadcastTone(item) {
+    return item.broadcastState === "直播中" ? "live" : item.broadcastState === "录播中" ? "recorded" : "idle";
+  }
+
   function enterLiveRoom(deviceId) {
     const room = global.phase2State?.roomForRobot(deviceId);
-    if (!room) {
-      global.toast?.("该机器人当前未绑定直播间");
-      return;
-    }
+    if (!room) return;
     global.changeLiveDashboardRoom?.(room.id);
     global.navigate?.("live-dashboard");
   }
 
+  function viewScript(deviceId) {
+    const item = deviceById(deviceId);
+    global.openRobotScriptsFromOps?.(deviceId, item?.name || "");
+  }
+
   function optionMarkup(values, selected) {
     return values.map((value) => `<option value="${escapeHtml(value)}" ${String(value) === String(selected) ? "selected" : ""}>${escapeHtml(value)}</option>`).join("");
+  }
+
+  function robotSequenceId(deviceId) {
+    return String(deviceId || "-").match(/(\d+)$/)?.[1] || String(deviceId || "-");
   }
 
   function channelFilterOptions() {
@@ -339,33 +360,43 @@
     return values.map((item) => `<option value="${escapeHtml(item.id)}" ${item.id === selected ? "selected" : ""}>${escapeHtml(item.name)}</option>`).join("");
   }
 
-  function renderFilters() {
-    return `
-      <div class="ops-filterbar" aria-label="运维筛选条件">
-        <label class="ops-filter ops-filter-fixed"><span>机器人类型</span><strong>直播</strong></label>
-        <label class="ops-filter"><span>渠道${opsHandoffMark("机器人运维筛选", "机器人运维新增渠道、版本、在线状态、告警类型和时间范围筛选。平台可按渠道切换查看，客户渠道只显示自身直播间。", "new")}</span><select onchange="robotOps.setFilter('channel', this.value)">${channelOptionMarkup(channelFilterOptions(), global.phase2State?.isPlatformChannel?.() ? state.filters.channel : (global.phase2State?.snapshot().currentChannelId || "channel-weishi"))}</select></label>
-        <label class="ops-filter"><span>机器人版本</span><select onchange="robotOps.setFilter('version', this.value)">${optionMarkup(filterOptions.version, state.filters.version)}</select></label>
-        <label class="ops-filter"><span>在线状态</span><select onchange="robotOps.setFilter('onlineState', this.value)">${optionMarkup(filterOptions.onlineState, state.filters.onlineState)}</select></label>
-        <label class="ops-filter"><span>告警类型</span><select onchange="robotOps.setFilter('alertType', this.value)">${optionMarkup(filterOptions.alertType, state.filters.alertType)}</select></label>
-        <label class="ops-filter"><span>时间范围</span><select onchange="robotOps.setFilter('hours', this.value)">${filterOptions.hours.map((value) => `<option value="${value}" ${value === state.filters.hours ? "selected" : ""}>最近${value}小时</option>`).join("")}</select></label>
-        <button class="ops-button ghost" type="button" onclick="robotOps.resetFilters()">重置筛选</button>
-      </div>`;
+  function renderDeviceScope() {
+    return `<label class="ops-device-scope" title="按机器人当前状态筛选画面和列表"><span>设备范围${opsHandoffMark("设备范围规则", "可选全部设备、当前异常（全部）以及网络、电机、扬声器、麦克风、推流、系统异常。按机器人当前状态筛选画面视图、列表视图和全屏监控；选择具体异常类型时，告警列表同步查询该类型的历史告警。", "new")}</span><select aria-label="设备范围" onchange="robotOps.setFilter('deviceScope', this.value)">${optionMarkup(filterOptions.deviceScope, state.filters.deviceScope)}</select></label>`;
+  }
+
+  function renderChannelScope() {
+    const currentChannelId = global.phase2State?.snapshot().currentChannelId || "channel-weishi";
+    const selectedChannelId = global.phase2State?.isPlatformChannel?.() ? state.filters.channel : currentChannelId;
+    const scopeMark = opsHandoffMark("运维数据范围与渠道", "页面只展示有实体硬件且机器人类型为直播的机器人。平台用户可切换渠道；客户用户固定展示自身渠道及其可见设备。", "new");
+    if (global.phase2State?.isPlatformChannel?.()) {
+      return `<label class="ops-channel-scope"><span>当前渠道${scopeMark}</span><select onchange="robotOps.setFilter('channel', this.value)">${channelOptionMarkup(channelFilterOptions(), selectedChannelId)}</select></label>`;
+    }
+    const channelName = (global.phase2State?.channels || []).find((item) => item.id === currentChannelId)?.name || "当前渠道";
+    return `<span class="ops-channel-readonly">当前渠道${scopeMark}：${escapeHtml(channelName)}</span>`;
+  }
+
+  function renderTopControls(showExit = false) {
+    return `<div class="ops-refresh"><div class="ops-scope-controls">${renderChannelScope()}${renderDeviceScope()}</div><div class="ops-refresh-actions"><span>实时订阅 · 最近更新 ${formatClock(state.lastRefresh, true)}</span><button class="ops-button" type="button" onclick="robotOps.refreshNow()">立即刷新${opsHandoffMark("运维刷新规则", "页面进入后建立实时订阅，设备、画面、告警、直播时长、当前脚本、当前阶段和开播状态随服务端事件持续更新；页面不再提供自动刷新开关，也不使用定时轮询。立即刷新作为人工兜底，执行后保留渠道、设备范围、告警时间、视图模式及全屏状态；失败时保留原数据并提示。", "info")}</button>${showExit ? `<button class="ops-button ghost" type="button" onclick="robotOps.toggleFullscreen(false)">退出全屏</button>` : ""}</div></div>`;
   }
 
   function renderMetrics(deviceList, alertList) {
     const online = deviceList.filter((item) => item.onlineState === "在线").length;
     const offline = deviceList.filter((item) => item.onlineState === "离线").length;
     const abnormal = deviceList.filter((item) => item.onlineState === "异常").length;
+    const live = deviceList.filter((item) => item.broadcastState === "直播中").length;
+    const recorded = deviceList.filter((item) => item.broadcastState === "录播中").length;
     const versions = filterOptions.version.slice(1).map((version) => ({ version, count: deviceList.filter((item) => item.version === version).length }));
     const total = Math.max(deviceList.length, 1);
     return `
       <section class="ops-metrics" aria-label="核心指标">
-        ${metricCard("总设备数", deviceList.length, "筛选范围内直播机器人", "violet", "▣")}
+        ${metricCard("总设备数", deviceList.length, "当前渠道设备", "violet", "▣", opsHandoffMark("核心指标口径", "总设备、在线、离线、当前直播、录播中和版本分布均按当前渠道全部直播机器人计算，不随设备范围、开播状态或告警时间变化；异常告警按设备范围对应的告警类型与告警时间计算。所有指标卡仅展示，不可点击筛选。", "info"))}
         ${metricCard("在线设备", online, `在线率 ${deviceList.length ? ((online / deviceList.length) * 100).toFixed(1) : "0.0"}%`, "green", "⌁")}
         ${metricCard("离线设备", offline, `异常设备 ${abnormal} 台`, "gray", "◉")}
-        ${metricCard("异常告警", alertList.length, state.selectedHour === null ? `近 ${state.filters.hours} 小时` : selectedHourLabel(), "red", "!")}
+        ${metricCard("当前直播", live, `占比 ${deviceList.length ? ((live / deviceList.length) * 100).toFixed(1) : "0.0"}%`, "blue", "▶")}
+        ${metricCard("录播中", recorded, `占比 ${deviceList.length ? ((recorded / deviceList.length) * 100).toFixed(1) : "0.0"}%`, "amber", "◫")}
+        ${metricCard("异常告警", alertList.length, `${selectedAlertType() === "全部类型" ? "全部类型" : selectedAlertType()} · 近 ${state.filters.hours} 小时`, "red", "!")}
         <article class="ops-panel ops-version-card">
-          <div class="ops-panel-title">设备类型分布</div>
+          <div class="ops-panel-title">机器人版本分布</div>
           <div class="ops-version-body">
             <div class="ops-donut" style="--r:${versions[0].count / total * 360}deg;--z:${(versions[0].count + versions[1].count) / total * 360}deg" aria-label="版本分布图"></div>
             <div class="ops-version-list">
@@ -376,62 +407,43 @@
       </section>`;
   }
 
-  function metricCard(title, value, note, tone, icon) {
-    return `<article class="ops-panel ops-metric ${tone}"><div class="ops-metric-icon">${icon}</div><div><span>${title}</span><strong>${value}</strong><small>${note}</small></div></article>`;
+  function metricCard(title, value, note, tone, icon, annotation = "") {
+    return `<article class="ops-panel ops-metric ${tone}"><div class="ops-metric-icon">${icon}</div><div><span>${title}${annotation}</span><strong>${value}</strong><small>${note}</small></div></article>`;
+  }
+
+  function renderBroadcastFilter(list) {
+    const counts = Object.fromEntries(filterOptions.broadcast.map((value) => [value, value === "全部" ? list.length : list.filter((item) => item.broadcastState === value).length]));
+    return `<div class="ops-broadcast-filter" role="group" aria-label="直播画面状态">${filterOptions.broadcast.map((value) => `<button class="${state.filters.broadcast === value ? "active" : ""}" type="button" onclick="robotOps.setFilter('broadcast', '${value}')"><span>${value}</span><strong>${counts[value]}</strong></button>`).join("")}</div>`;
   }
 
   function renderDeviceGrid(list, highlightedIds) {
-    if (!list.length) return emptyState("当前筛选条件下没有匹配的机器人", "请调整版本、状态、告警类型或时间范围。");
+    if (!list.length) return emptyState("当前没有匹配的机器人", "请切换设备范围查看其他机器人。");
     return `<div class="ops-device-grid">${list.map((item) => renderDeviceCard(item, highlightedIds.has(item.id))).join("")}</div>`;
   }
 
-  function pageCountFor(list) {
-    return Math.max(1, Math.ceil(list.length / state.pageSize));
-  }
-
-  function normalizePage(list) {
-    const totalPages = pageCountFor(list);
-    if (state.page > totalPages) state.page = totalPages;
-    if (state.page < 1) state.page = 1;
-    return totalPages;
-  }
-
-  function pagedDevices(list) {
-    normalizePage(list);
-    const start = (state.page - 1) * state.pageSize;
-    return list.slice(start, start + state.pageSize);
-  }
-
-  function renderPagination(list) {
-    if (state.viewMode !== "grid" || list.length <= state.pageSize) return "";
-    const totalPages = normalizePage(list);
-    const start = (state.page - 1) * state.pageSize + 1;
-    const end = Math.min(state.page * state.pageSize, list.length);
-    return `<div class="ops-pagination" aria-label="直播间分页">
-      <span>第 ${state.page} / ${totalPages} 页 · 当前 ${start}-${end} / 共 ${list.length} 个直播间</span>
-      <div>
-        <button class="ops-button ghost" type="button" ${state.page <= 1 ? "disabled" : ""} onclick="robotOps.setPage(${state.page - 1})">上一页</button>
-        <button class="ops-button ghost" type="button" ${state.page >= totalPages ? "disabled" : ""} onclick="robotOps.setPage(${state.page + 1})">下一页</button>
-      </div>
-    </div>`;
-  }
-
   function renderDeviceCard(item, highlighted) {
+    const tone = broadcastTone(item);
     return `
-      <button class="ops-device-card ${item.onlineState === "离线" ? "offline" : ""} ${highlighted ? "highlighted" : ""}" data-ops-device="${escapeHtml(item.id)}" type="button" onclick="robotOps.openDevice('${escapeHtml(item.id)}')">
+      <button class="ops-device-card ${item.onlineState === "离线" ? "offline" : ""} broadcast-${tone} ${highlighted ? "highlighted" : ""}" data-ops-device="${escapeHtml(item.id)}" type="button" onclick="robotOps.openDevice('${escapeHtml(item.id)}')">
         <div class="ops-device-head"><span class="ops-presence ${statusTone(item.onlineState)}"></span><strong>${escapeHtml(item.id)}</strong><span class="ops-online-badge ${statusTone(item.onlineState)}">${escapeHtml(item.onlineState)}</span></div>
         <div class="ops-feed scene-${escapeHtml(item.scene)}">
           ${robotArtwork(item.version, item.id)}
-          <span class="ops-feed-live">${item.onlineState === "离线" ? "画面中断" : "LIVE"}</span>
+          <span class="ops-feed-live state-${tone}">${item.onlineState === "离线" ? "画面中断" : item.broadcastState === "直播中" ? "LIVE" : item.broadcastState === "录播中" ? "REC" : "未开播"}</span>
           ${item.currentAlert ? `<span class="ops-alert-badge">${escapeHtml(item.currentAlert)}</span>` : ""}
-          <span class="ops-source-badge mode-${escapeHtml(item.videoSource || "live")}">${videoSourceLabel(item.videoSource)}</span>
+          <span class="ops-source-badge mode-${escapeHtml(item.videoSource || "live")}">${broadcastSourceLabel(item)}</span>
         </div>
         <div class="ops-device-meta"><strong>${escapeHtml(item.name)}</strong><span>${escapeHtml(item.version)} · ${escapeHtml(item.mode)}</span></div>
+        <div class="ops-live-runtime">
+          <span><em>直播时长</em><strong>${escapeHtml(item.duration)}</strong></span>
+          <span><em>当前脚本</em><strong title="${escapeHtml(item.script)}">${escapeHtml(item.script)}</strong></span>
+          <span><em>当前阶段</em><strong title="${escapeHtml(item.stage)}">${escapeHtml(item.stage)}</strong></span>
+        </div>
         <div class="ops-status-row compact">
           ${statusIcon("联网", item.network, "⌁")}
           ${statusIcon("麦克风", item.microphone, "♩")}
           ${statusIcon("扬声器", item.speaker, "◖")}
           ${statusIcon("电机", item.motor, "⚙")}
+          ${statusIcon("推流", item.stream, "↗")}
         </div>
       </button>`;
   }
@@ -449,10 +461,21 @@
     </svg>`;
   }
 
+  function robotAvatarArtwork(id) {
+    const suffix = escapeHtml(id.slice(-2));
+    return `<svg class="ops-robot-avatar" viewBox="0 0 120 120" aria-hidden="true">
+      <defs><linearGradient id="avatar-${suffix}" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff"/><stop offset="1" stop-color="#8999b6"/></linearGradient></defs>
+      <circle cx="60" cy="60" r="49" fill="rgb(5 13 27 / 48%)"/>
+      <rect x="29" y="26" width="62" height="66" rx="27" fill="url(#avatar-${suffix})"/>
+      <rect x="37" y="39" width="46" height="36" rx="16" fill="#08111f"/>
+      <circle cx="50" cy="57" r="5" fill="#70f3ff"/><circle cx="70" cy="57" r="5" fill="#70f3ff"/>
+    </svg>`;
+  }
+
   function renderDeviceTable(list, highlightedIds) {
     if (!list.length) return emptyState("当前筛选条件下没有匹配的机器人", "请调整筛选条件后重试。");
-    return `<div class="ops-table-wrap"><table class="ops-table"><thead><tr><th>机器人ID / 名称</th><th>版本</th><th>模式</th><th>画面来源</th><th>在线</th><th>联网</th><th>麦克风</th><th>扬声器</th><th>电机</th><th>当前告警</th><th>最后上报</th><th>操作</th></tr></thead><tbody>
-      ${list.map((item) => `<tr class="${highlightedIds.has(item.id) ? "highlighted" : ""}"><td><strong>${escapeHtml(item.id)}</strong><small>${escapeHtml(item.name)}</small></td><td>${escapeHtml(item.version)}</td><td>${escapeHtml(item.mode)}</td><td>${videoSourceLabel(item.videoSource)}</td><td>${statusPill(item.onlineState)}</td><td>${statusPill(item.network)}</td><td>${statusPill(item.microphone)}</td><td>${statusPill(item.speaker)}</td><td>${statusPill(item.motor)}</td><td>${item.currentAlert ? `<span class="ops-alert-text">${escapeHtml(item.currentAlert)}</span>` : "—"}</td><td>${escapeHtml(item.lastReportedAt)}</td><td><button class="ops-link" type="button" onclick="robotOps.openDevice('${escapeHtml(item.id)}')">查看详情</button></td></tr>`).join("")}
+    return `<div class="ops-table-wrap"><table class="ops-table"><thead><tr><th>机器人ID / 名称</th><th>版本</th><th>模式</th><th>开播状态</th><th>画面来源</th><th>在线</th><th>联网</th><th>麦克风</th><th>扬声器</th><th>电机</th><th>推流</th><th>当前告警</th><th>最后上报</th><th>操作</th></tr></thead><tbody>
+      ${list.map((item) => `<tr class="${highlightedIds.has(item.id) ? "highlighted" : ""}"><td><strong>${escapeHtml(item.id)}</strong><small>${escapeHtml(item.name)}</small></td><td>${escapeHtml(item.version)}</td><td>${escapeHtml(item.mode)}</td><td>${statusPill(item.broadcastState)}</td><td>${broadcastSourceLabel(item)}</td><td>${statusPill(item.onlineState)}</td><td>${statusPill(item.network)}</td><td>${statusPill(item.microphone)}</td><td>${statusPill(item.speaker)}</td><td>${statusPill(item.motor)}</td><td>${statusPill(item.stream)}</td><td>${item.currentAlert ? `<span class="ops-alert-text">${escapeHtml(item.currentAlert)}</span>` : "—"}</td><td>${escapeHtml(item.lastReportedAt)}</td><td><button class="ops-link" type="button" onclick="robotOps.openDevice('${escapeHtml(item.id)}')">查看详情</button></td></tr>`).join("")}
     </tbody></table></div>`;
   }
 
@@ -462,103 +485,32 @@
 
   function renderAlerts(list) {
     return `<aside class="ops-panel ops-alert-panel">
-      <div class="ops-section-head"><div><h3>实时告警${opsHandoffMark("运维告警联动", "直播大屏触发故障后会同步进入机器人运维告警列表，并按严重程度优先展示。", "info")}</h3><span>${list.length} 条告警</span></div><span class="ops-priority-note">严重优先</span></div>
-      <div class="ops-alert-columns"><span>机器人ID</span><span>版本</span><span>异常情况</span><span>时间</span></div>
+      <div class="ops-section-head"><div><h3>告警列表${opsHandoffMark("告警列表字段与规则", "字段包括机器人ID、机器人名称、版本、异常情况、持续时长和时间。按发生时间倒序展示；名称过长单行省略，异常情况必须完整换行。时间可选近1、3、6、12、24小时，只影响告警列表和异常告警指标。点击告警直接打开设备详情，不改变当前筛选与视图。", "info")}</h3><span>${list.length} 条告警</span></div><span class="ops-priority-note">最新在前</span></div>
+      <div class="ops-alert-columns"><span>机器人ID</span><span>机器人名称</span><span>版本</span><span>异常情况</span><span>持续时长</span><label class="ops-alert-time-filter"><span>时间 ·</span><select aria-label="告警时间" onchange="robotOps.setFilter('hours', this.value)">${filterOptions.hours.map((value) => `<option value="${value}" ${value === state.filters.hours ? "selected" : ""}>近${value}小时</option>`).join("")}</select></label></div>
       <div class="ops-alert-list">
         ${list.length ? list.map((item) => {
           const linkedDevice = deviceById(item.deviceId);
-          return `<button class="ops-alert-row severity-${escapeHtml(item.severity)}" type="button" onclick="robotOps.locateAlert('${escapeHtml(item.id)}')"><span><i></i>${escapeHtml(item.deviceId)}</span><span>${escapeHtml(linkedDevice?.version || "-")}</span><strong>${escapeHtml(item.message)}</strong><time>${formatClock(alertTimestamp(item))}</time></button>`;
-        }).join("") : emptyState("暂无告警", "当前筛选范围内设备运行正常。", true)}
+          return `<button class="ops-alert-row" type="button" onclick="robotOps.locateAlert('${escapeHtml(item.id)}')"><span title="${escapeHtml(item.deviceId)}"><i></i>${escapeHtml(robotSequenceId(item.deviceId))}</span><span class="ops-alert-device-name" title="${escapeHtml(linkedDevice?.name || "-")}">${escapeHtml(linkedDevice?.name || "-")}</span><span>${escapeHtml(linkedDevice?.version || "-")}</span><strong title="${escapeHtml(item.message)}">${escapeHtml(item.message)}</strong><span class="ops-alert-duration">${formatDuration(alertDurationSeconds(item))}</span><time>${formatClock(alertTimestamp(item))}</time></button>`;
+        }).join("") : emptyState("暂无告警", "当前设备范围和时间条件下没有告警记录。", true)}
       </div>
     </aside>`;
-  }
-
-  function buildTrend() {
-    const hours = state.filters.hours;
-    const source = baseAlerts();
-    return Array.from({ length: hours }, (_, position) => {
-      const offset = hours - 1 - position;
-      const bucket = source.filter((item) => Math.floor(item.minutesAgo / 60) === offset);
-      return {
-        offset,
-        label: hourLabel(offset),
-        total: bucket.length,
-        network: bucket.filter((item) => item.type === "网络异常").length,
-        motor: bucket.filter((item) => item.type === "电机异常").length,
-      };
-    });
-  }
-
-  function hourLabel(offset) {
-    const date = new Date(state.lastRefresh.getTime() - offset * 60 * 60 * 1000);
-    return `${String(date.getHours()).padStart(2, "0")}:00`;
-  }
-
-  function selectedHourLabel() {
-    return state.selectedHour === null ? "" : `${hourLabel(state.selectedHour)} 时段`;
-  }
-
-  function renderTrend() {
-    const points = buildTrend();
-    const width = 760;
-    const height = 220;
-    const left = 38;
-    const right = 18;
-    const top = 18;
-    const bottom = 40;
-    const plotWidth = width - left - right;
-    const plotHeight = height - top - bottom;
-    const maxValue = Math.max(4, ...points.map((item) => item.total));
-    const x = (index) => left + (points.length === 1 ? plotWidth / 2 : (index / (points.length - 1)) * plotWidth);
-    const y = (value) => top + plotHeight - (value / maxValue) * plotHeight;
-    const polyline = (key) => points.map((item, index) => `${x(index).toFixed(1)},${y(item[key]).toFixed(1)}`).join(" ");
-    const labelEvery = Math.max(1, Math.ceil(points.length / 8));
-    const selected = state.selectedHour;
-    const sourceAlerts = baseAlerts();
-    const networkCount = sourceAlerts.filter((item) => item.type === "网络异常").length;
-    const motorCount = sourceAlerts.filter((item) => item.type === "电机异常").length;
-    return `<section class="ops-trend-grid">
-      <article class="ops-panel ops-trend-panel">
-        <div class="ops-section-head"><div><h3>告警趋势分析</h3><span>近 ${state.filters.hours} 小时 · 按小时聚合</span></div><div class="ops-legend"><span class="total">告警总数</span><span class="network">网络异常</span><span class="motor">电机异常</span></div></div>
-        <svg class="ops-trend-chart" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" aria-label="告警趋势图">
-          ${[0, 1, 2, 3, 4].map((step) => { const value = Math.round((maxValue / 4) * step); const py = y(value); return `<g><line x1="${left}" x2="${width - right}" y1="${py}" y2="${py}"/><text x="4" y="${py + 4}">${value}</text></g>`; }).join("")}
-          ${selected !== null ? (() => { const index = points.findIndex((item) => item.offset === selected); if (index < 0) return ""; const bandWidth = Math.max(18, plotWidth / Math.max(points.length, 2)); return `<rect class="ops-selected-band" x="${x(index) - bandWidth / 2}" y="${top}" width="${bandWidth}" height="${plotHeight}"/>`; })() : ""}
-          <polyline class="ops-line total" points="${polyline("total")}"/>
-          <polyline class="ops-line network" points="${polyline("network")}"/>
-          <polyline class="ops-line motor" points="${polyline("motor")}"/>
-          ${points.map((item, index) => `<g class="ops-chart-point ${selected === item.offset ? "selected" : ""}" role="button" tabindex="0" onclick="robotOps.toggleHour(${item.offset})"><rect x="${x(index) - Math.max(9, plotWidth / points.length / 2)}" y="${top}" width="${Math.max(18, plotWidth / points.length)}" height="${plotHeight}" fill="transparent"/><circle class="total" cx="${x(index)}" cy="${y(item.total)}" r="4"/><circle class="network" cx="${x(index)}" cy="${y(item.network)}" r="3"/><circle class="motor" cx="${x(index)}" cy="${y(item.motor)}" r="3"/>${index % labelEvery === 0 || index === points.length - 1 ? `<text x="${x(index)}" y="${height - 13}" text-anchor="middle">${item.label}</text>` : ""}</g>`).join("")}
-        </svg>
-      </article>
-      <aside class="ops-panel ops-trend-summary">
-        <div class="ops-section-head"><div><h3>趋势汇总</h3><span>近 ${state.filters.hours} 小时</span></div></div>
-        <div class="ops-summary-cards">
-          ${summaryCard("告警总数", sourceAlerts.length, "red")}
-          ${summaryCard("网络异常", networkCount, "blue")}
-          ${summaryCard("电机异常", motorCount, "amber")}
-        </div>
-      </aside>
-    </section>`;
-  }
-
-  function summaryCard(label, value, tone) {
-    return `<div class="ops-summary-card ${tone}"><span>${label}</span><strong>${value}</strong><small>当前筛选范围</small><i></i></div>`;
   }
 
   function renderDrawer() {
     if (!state.selectedDeviceId) return "";
     const item = baseDevices().find((entry) => entry.id === state.selectedDeviceId) || deviceById(state.selectedDeviceId);
     if (!item) return "";
-    const recentAlerts = baseAlerts().filter((entry) => entry.deviceId === item.id).sort((a, b) => a.minutesAgo - b.minutesAgo).slice(0, 6);
+    const recentAlerts = allAlerts().filter((entry) => entry.deviceId === item.id).slice(0, 6);
     return `<div class="ops-drawer-backdrop" onclick="robotOps.closeDevice()">
       <aside class="ops-drawer" role="dialog" aria-modal="true" aria-label="机器人运维详情" onclick="event.stopPropagation()">
-        <div class="ops-drawer-head"><div><span>直播间数据详情${opsHandoffMark("设备详情抽屉", "点击机器人画面或列表行打开详情抽屉，集中查看画面来源、网络、麦克风、扬声器、电机和最近告警。", "new")}</span><h2>${escapeHtml(item.name)} <small>${escapeHtml(item.id)}</small></h2></div><button type="button" aria-label="关闭" onclick="robotOps.closeDevice()">×</button></div>
-        <div class="ops-detail-feed scene-${escapeHtml(item.scene)}">${robotArtwork(item.version, item.id)}<span>${item.onlineState === "离线" ? "实时画面不可用" : "当前直播画面"}</span></div>
+        <div class="ops-drawer-head"><div><span>直播间数据详情${opsHandoffMark("设备详情字段", "详情展示机器人版本、在线状态、机器人模式、开播状态、画面来源、直播时长、当前脚本、当前阶段、联网、麦克风、扬声器、电机、推流和最后上报时间；最近告警固定展示该机器人最新6条，不继承页面筛选。", "new")}</span><h2>${escapeHtml(item.name)} <small>${escapeHtml(item.id)}</small></h2></div><button type="button" aria-label="关闭" onclick="robotOps.closeDevice()">×</button></div>
+        <div class="ops-detail-avatar-block"><div class="ops-detail-avatar scene-${escapeHtml(item.scene)}">${robotAvatarArtwork(item.id)}</div><span>静态画面</span></div>
         <div class="ops-detail-grid">
-          ${detailItem("机器人版本", item.version)}${detailItem("在线状态", item.onlineState, true)}${detailItem("机器人模式", item.mode)}${detailItem("画面来源", videoSourceLabel(item.videoSource))}${detailItem("联网状态", item.network, true)}${detailItem("麦克风", item.microphone, true)}${detailItem("扬声器", item.speaker, true)}${detailItem("电机状态", item.motor, true)}${detailItem("最后上报", item.lastReportedAt)}
+          ${detailItem("机器人版本", item.version)}${detailItem("在线状态", item.onlineState, true)}${detailItem("机器人模式", item.mode)}${detailItem("开播状态", item.broadcastState, true)}${detailItem("画面来源", broadcastSourceLabel(item))}${detailItem("直播时长", item.duration)}${detailItem("当前脚本", item.script)}${detailItem("当前阶段", item.stage)}${detailItem("联网状态", item.network, true)}${detailItem("麦克风", item.microphone, true)}${detailItem("扬声器", item.speaker, true)}${detailItem("电机状态", item.motor, true)}${detailItem("推流状态", item.stream, true)}${detailItem("最后上报", item.lastReportedAt)}
         </div>
         <section class="ops-detail-alerts"><div class="ops-section-head"><div><h3>最近告警记录</h3><span>${recentAlerts.length} 条</span></div></div>
-          ${recentAlerts.length ? recentAlerts.map((entry) => `<div class="ops-detail-alert-row"><span class="ops-presence ${entry.severity === "严重" ? "danger" : "warning"}"></span><div><strong>${escapeHtml(entry.message)}</strong><small>${escapeHtml(entry.type)} · ${formatClock(alertTimestamp(entry), true)}</small></div><em>${escapeHtml(entry.severity)}</em></div>`).join("") : emptyState("暂无历史告警", "该设备当前运行正常。", true)}
-        </section><div class="ops-detail-actions"><button class="ops-button ops-enter-live" type="button" onclick="robotOps.enterLiveRoom('${escapeHtml(item.id)}')">进入直播间</button><button class="ops-button ghost ops-view-script" type="button">查看脚本</button></div>
+          ${recentAlerts.length ? recentAlerts.map((entry) => `<div class="ops-detail-alert-row"><span class="ops-presence warning"></span><div><strong>${escapeHtml(entry.message)}</strong><small>${escapeHtml(entry.type)} · ${formatClock(alertTimestamp(entry), true)}</small></div></div>`).join("") : emptyState("暂无历史告警", "该设备当前运行正常。", true)}
+        </section><div class="ops-detail-actions"><button class="ops-button ops-enter-live" type="button" onclick="robotOps.enterLiveRoom('${escapeHtml(item.id)}')">查看直播数据大屏${opsHandoffMark("运维详情跳转规则", "查看直播数据大屏始终可用：直播中展示实时数据，未开播展示历史记录，没有历史记录时展示空数据；查看脚本进入当前机器人的脚本执行管理，未配置脚本时展示空状态。", "info")}</button><button class="ops-button ghost ops-view-script" type="button" onclick="robotOps.viewScript('${escapeHtml(item.id)}')">查看脚本</button></div>
       </aside>
     </div>`;
   }
@@ -572,29 +524,24 @@
   }
 
   function render() {
-    ensureRefreshTimer();
+    const metricDeviceList = baseDevices();
+    const metricAlertList = baseAlerts();
+    const scopeDeviceList = scopedDevices();
     const deviceList = visibleDevices();
-    const monitorList = state.viewMode === "grid" ? pagedDevices(deviceList) : deviceList;
+    const monitorList = deviceList;
     const alertList = visibleAlerts();
-    const highlightedIds = state.selectedDeviceId
-      ? new Set([state.selectedDeviceId])
-      : state.selectedHour !== null
-        ? new Set(alertList.map((item) => item.deviceId))
-        : new Set();
+    const highlightedIds = state.selectedDeviceId ? new Set([state.selectedDeviceId]) : new Set();
     const monitorPanel = `<article class="ops-panel ops-monitor-panel">
-          <div class="ops-section-head"><div><h3>直播画面监控${opsHandoffMark("机器人运维画面墙", "本次新增画面视图和列表视图，筛选条件在视图切换时保持，支持50路直播间分页值守。", "new")}</h3><span>${deviceList.length} 个直播间${state.viewMode === "grid" ? ` · 每页 ${state.pageSize} 个` : " · 列表滚动查看"}</span></div><div class="ops-view-switch"><button class="${state.viewMode === "grid" ? "active" : ""}" type="button" onclick="robotOps.setView('grid')">▦ 画面视图</button><button class="${state.viewMode === "list" ? "active" : ""}" type="button" onclick="robotOps.setView('list')">☷ 列表视图</button><button class="${state.fullscreen ? "active" : ""}" type="button" onclick="robotOps.toggleFullscreen(${state.fullscreen ? "false" : "true"})">${state.fullscreen ? "退出全屏" : "全屏监控"}</button></div></div>
+          <div class="ops-section-head ops-monitor-head"><div class="ops-monitor-heading"><div><h3>直播画面监控${opsHandoffMark("画面范围与视图规则", "开播状态可选全部、直播中、录播中和未开播，与顶部设备范围取交集，只影响画面、列表和全屏监控。三种视图使用同一结果集，按在线、异常、离线排序，切换后保留筛选条件。", "new")}</h3><span>${deviceList.length} 个直播间${opsHandoffMark("机器人画面卡片字段", "画面卡片展示机器人ID、名称、版本、模式、开播状态、画面来源、在线状态、联网、麦克风、扬声器、电机、推流、当前告警、直播时长、当前脚本和当前阶段；当前版本模式固定显示直播。未开播时显示00:00:00、未运行、等待开播。", "info")}</span></div>${renderBroadcastFilter(scopeDeviceList)}</div><div class="ops-view-switch"><button class="${state.viewMode === "grid" ? "active" : ""}" type="button" onclick="robotOps.setView('grid')">▦ 画面视图</button><button class="${state.viewMode === "list" ? "active" : ""}" type="button" onclick="robotOps.setView('list')">☷ 列表视图</button><button class="${state.fullscreen ? "active" : ""}" type="button" onclick="robotOps.toggleFullscreen(${state.fullscreen ? "false" : "true"})">${state.fullscreen ? "退出全屏" : "全屏监控"}</button></div></div>
           <div class="ops-monitor-content">${state.viewMode === "grid" ? renderDeviceGrid(monitorList, highlightedIds) : renderDeviceTable(monitorList, highlightedIds)}</div>
-          ${renderPagination(deviceList)}
-          <div class="ops-status-legend"><span>${statusIcon("联网", "正常", "⌁")} 联网</span><span>${statusIcon("麦克风", "正常", "♩")} 麦克风</span><span>${statusIcon("扬声器", "正常", "◖")} 扬声器</span><span>${statusIcon("电机", "正常", "⚙")} 电机</span><span><i class="ops-presence ok"></i>在线</span><span><i class="ops-presence muted"></i>离线</span><span><i class="ops-presence warning"></i>告警</span></div>
+          <div class="ops-status-legend"><span>${statusIcon("联网", "正常", "⌁")} 联网</span><span>${statusIcon("麦克风", "正常", "♩")} 麦克风</span><span>${statusIcon("扬声器", "正常", "◖")} 扬声器</span><span>${statusIcon("电机", "正常", "⚙")} 电机</span><span>${statusIcon("推流", "正常", "↗")} 推流</span><span><i class="ops-presence ok"></i>在线</span><span><i class="ops-presence muted"></i>离线</span><span><i class="ops-presence warning"></i>告警</span></div>
         </article>`;
     if (state.fullscreen) {
       return `<div class="robot-ops-page fullscreen-monitor">
         <header class="ops-hero">
-          <div><span class="ops-kicker">FULLSCREEN MONITOR</span><h1>直播间画面墙</h1><p>50 路直播间按页值守，筛选条件和告警联动保持有效</p></div>
-          <div class="ops-refresh"><span>最后刷新 ${formatClock(state.lastRefresh, true)}</span><button class="ops-button ghost" type="button" onclick="robotOps.toggleFullscreen(false)">退出全屏</button></div>
+          <div><span class="ops-kicker">FULLSCREEN MONITOR</span><h1>直播间画面墙</h1><p>直播间按当前屏幕自适应排布，设备范围保持有效</p></div>
+          ${renderTopControls(true)}
         </header>
-        ${renderFilters()}
-        ${state.selectedHour !== null ? `<div class="ops-linked-filter"><span>已联动：${selectedHourLabel()}</span><button type="button" onclick="robotOps.clearTrendSelection()">清除联动 ×</button></div>` : ""}
         <section class="ops-monitor-layout only-monitor">${monitorPanel}</section>
         ${renderDrawer()}
       </div>`;
@@ -602,12 +549,10 @@
     return `<div class="robot-ops-page ops-fixed-layout">
       <section class="ops-fixed-top">
         <header class="ops-hero">
-          <div><span class="ops-kicker">ROBOT LIVE OPERATIONS</span><h1>机器人直播运维监控</h1><p>集中查看直播机器人画面、设备状态与实时告警</p></div>
-          <div class="ops-refresh"><span>最后刷新 ${formatClock(state.lastRefresh, true)}</span><label><input type="checkbox" ${state.autoRefresh ? "checked" : ""} onchange="robotOps.setAutoRefresh(this.checked)"><i></i>自动刷新 10s</label><button class="ops-button" type="button" onclick="robotOps.refreshNow()">立即刷新</button></div>
+          <div><span class="ops-kicker">ROBOT LIVE OPERATIONS</span><h1>机器人直播运维监控</h1><p>集中查看直播机器人画面、设备状态与告警记录</p></div>
+          ${renderTopControls()}
         </header>
-        ${renderFilters()}
-        ${state.selectedHour !== null ? `<div class="ops-linked-filter"><span>已联动：${selectedHourLabel()}</span><button type="button" onclick="robotOps.clearTrendSelection()">清除联动 ×</button></div>` : ""}
-        ${renderMetrics(deviceList, alertList)}
+        ${renderMetrics(metricDeviceList, metricAlertList)}
       </section>
       <section class="ops-fixed-middle">
         <section class="ops-monitor-layout">
@@ -619,7 +564,8 @@
     </div>`;
   }
 
-  const api = { render, setFilter, resetFilters, setView, setPage, toggleFullscreen, refreshNow, setAutoRefresh, openDevice, closeDevice, locateAlert, toggleHour, clearTrendSelection, enterLiveRoom };
+  const api = { render, setFilter, setView, toggleFullscreen, refreshNow, openDevice, closeDevice, locateAlert, enterLiveRoom, viewScript };
   global.robotOps = api;
   global.renderRobotOpsPage = render;
+  global.addEventListener("phase2-state-changed", applyRealtimeUpdate);
 })(window);
