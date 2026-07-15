@@ -474,13 +474,13 @@
 
 .ops-device-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(360px, 420px));
-  justify-content: start;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
 }
 
 .ops-device-card {
   position: relative;
+  container-type: inline-size;
   min-width: 0;
   padding: 0;
   overflow: hidden;
@@ -541,7 +541,7 @@
 .ops-device-main {
   display: grid;
   min-height: 0;
-  grid-template-columns: minmax(220px, 1.65fr) minmax(140px, 0.9fr);
+  grid-template-columns: minmax(0, 1.65fr) minmax(80px, 0.9fr);
   overflow: hidden;
   border-top: 1px solid #232a3e;
   border-bottom: 1px solid #232a3e;
@@ -674,7 +674,7 @@
 }
 
 .fullscreen-monitor .ops-device-grid {
-  grid-template-columns: repeat(auto-fill, minmax(360px, 420px));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .fullscreen-monitor .ops-device-main,
@@ -739,6 +739,23 @@
 .ops-detail-alert-row strong { color: #e9edf7; font-size: 11px; }
 .ops-detail-alert-row small { margin-top: 3px; color: #7f899e; font-size: 9px; }
 
+@container (max-width: 280px) {
+  .ops-live-runtime { gap: 3px; padding: 6px; }
+  .ops-live-runtime em { font-size: 7px; }
+  .ops-live-runtime strong { font-size: 9px; }
+  .ops-live-runtime > span:first-child strong { font-size: 11px; }
+  .ops-feed-identity { left: 7px; bottom: 6px; }
+  .ops-feed-identity strong { font-size: 10px; }
+  .ops-feed-identity small { font-size: 7px; }
+  .ops-source-badge { right: 6px; bottom: 6px; padding: 2px 4px; font-size: 7px; }
+  .ops-status-row.compact { gap: 2px; padding: 5px 6px 7px; }
+  .ops-status-item { gap: 2px; font-size: 7px; }
+}
+
+@media (min-width: 1700px) {
+  .ops-device-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+}
+
 @media (max-width: 1500px) {
   .ops-version-body { max-width: 620px; }
 }
@@ -770,6 +787,7 @@
 @media (max-width: 1040px) {
   .ops-metrics { grid-template-columns: repeat(2, minmax(150px, 1fr)); }
   .ops-version-card { grid-column: span 2; }
+  .ops-device-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (max-width: 720px) {
