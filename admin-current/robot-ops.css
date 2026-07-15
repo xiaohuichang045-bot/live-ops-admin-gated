@@ -775,9 +775,19 @@
   .ops-status-item { gap: 2px; font-size: 8px; }
 }
 
-@media (max-width: 1699px) {
-  .ops-monitor-layout { grid-template-columns: minmax(0, 1fr); }
-  .ops-alert-list { max-height: 340px; }
+@media (min-width: 1221px) and (max-width: 1699px) {
+  .ops-monitor-layout {
+    height: 100%;
+    min-height: 0;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) clamp(210px, 25vh, 260px);
+    align-items: stretch;
+    overflow: hidden;
+  }
+  .ops-fixed-layout .ops-monitor-panel,
+  .ops-fixed-layout .ops-alert-panel { min-height: 0; height: 100%; overflow: hidden; }
+  .ops-fixed-layout .ops-monitor-content { min-height: 0; }
+  .ops-fixed-layout .ops-alert-list { min-height: 0; max-height: none; overflow: auto; }
 }
 
 @media (min-width: 1500px) {
