@@ -474,7 +474,8 @@
 
 .ops-device-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
+  grid-template-columns: repeat(auto-fill, minmax(360px, 420px));
+  justify-content: start;
   gap: 8px;
 }
 
@@ -619,20 +620,21 @@
 .ops-alert-panel { min-width: 0; }
 .ops-priority-note { padding: 4px 7px; border: 1px solid rgb(77 135 255 / 28%); border-radius: 999px; color: #82a9ff !important; }
 .ops-alert-columns,
-.ops-alert-row { display: grid; grid-template-columns: 48px minmax(42px, 0.55fr) 34px minmax(110px, 1.6fr) 58px 88px; align-items: center; gap: 5px; }
-.ops-alert-columns { padding: 9px 8px; border-radius: 5px; background: #181d2e; color: #7f8aa3; font-size: 9px; }
+.ops-alert-row { display: grid; grid-template-columns: 58px minmax(62px, 0.65fr) 38px minmax(82px, 1.35fr) 54px 88px; align-items: center; gap: 4px; }
+.ops-alert-columns { padding: 9px 8px; border-radius: 5px; background: #181d2e; color: #9aa5bb; font-size: 10px; font-weight: 600; line-height: 1.2; }
 .ops-alert-time-filter { display: inline-flex; min-width: 0; align-items: center; justify-content: flex-end; gap: 2px; color: #9fa9bd; white-space: nowrap; }
 .ops-alert-time-filter > span { color: #7f8aa3; }
-.ops-alert-time-filter select { width: 58px; min-width: 0; height: 24px; padding: 0 13px 0 1px; border: 0; outline: 0; background: transparent; color: #a9b5ca; font-size: 9px; }
+.ops-alert-time-filter select { width: 58px; min-width: 0; height: 24px; padding: 0 13px 0 1px; border: 0; outline: 0; background: transparent; color: #b9c3d6; font-size: 10px; }
 .ops-alert-list { max-height: 522px; overflow: auto; scrollbar-color: #353d55 transparent; }
-.ops-alert-row { width: 100%; min-height: 46px; padding: 7px 8px; border: 0; border-bottom: 1px solid #202638; background: transparent; color: #c9d0df; text-align: left; font-size: 9px; }
+.robot-ops-page .ops-alert-row { width: 100%; min-height: 48px; padding: 7px 8px; border: 0; border-bottom: 1px solid #202638; background: transparent; color: #d2d9e7; text-align: left; font-size: 10px; line-height: 1.3; }
 .ops-alert-row:hover { background: #181e30; }
-.ops-alert-row > span:first-child { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
-.ops-alert-device-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ops-alert-row > span:first-child { display: flex; min-width: 0; align-items: center; gap: 4px; overflow: hidden; white-space: nowrap; }
+.ops-alert-device-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ops-alert-row > span:nth-child(3) { white-space: nowrap; }
 .ops-alert-duration { color: #aeb7c9; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .ops-alert-row i { width: 7px; height: 7px; flex: 0 0 auto; border-radius: 50%; background: var(--ops-amber); }
 .ops-alert-row strong { min-width: 0; padding: 4px 5px; border-radius: 3px; background: rgb(255 176 46 / 13%); color: #ffc35c; font-weight: 600; line-height: 1.35; overflow-wrap: anywhere; white-space: normal; }
-.ops-alert-row time { color: #9ca6ba; text-align: right; }
+.ops-alert-row time { color: #aab4c6; text-align: right; white-space: nowrap; }
 
 .ops-table-wrap { max-width: 100%; overflow: auto; border: 1px solid #252c3f; border-radius: 6px; }
 .ops-table { width: 100%; min-width: 1260px; border-collapse: collapse; font-size: 10px; }
@@ -672,7 +674,7 @@
 }
 
 .fullscreen-monitor .ops-device-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(360px, 420px));
 }
 
 .fullscreen-monitor .ops-device-main,
@@ -737,11 +739,6 @@
 .ops-detail-alert-row strong { color: #e9edf7; font-size: 11px; }
 .ops-detail-alert-row small { margin-top: 3px; color: #7f899e; font-size: 9px; }
 
-@media (min-width: 1700px) {
-  .ops-device-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .fullscreen-monitor .ops-device-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-}
-
 @media (max-width: 1500px) {
   .ops-version-body { max-width: 620px; }
 }
@@ -773,7 +770,6 @@
 @media (max-width: 1040px) {
   .ops-metrics { grid-template-columns: repeat(2, minmax(150px, 1fr)); }
   .ops-version-card { grid-column: span 2; }
-  .ops-device-grid { grid-template-columns: minmax(0, 1fr); }
 }
 
 @media (max-width: 720px) {
