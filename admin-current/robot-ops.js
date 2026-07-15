@@ -85,7 +85,7 @@
       const number = String(seedDevices.length + index + 1).padStart(3, "0");
       const version = versions[index % versions.length];
       const onlineState = states[index % states.length];
-      const alertType = ["", "网络连接波动", "麦克风无输入", "扬声器异常", "3号电机异常"][index % 5];
+      const alertType = ["", "网络连接波动", "麦克风无输入", "3号电机异常", "扬声器异常"][index % 5];
       const network = onlineState === "离线" ? "离线" : alertType.includes("网络") ? "网络异常" : "正常";
       const microphone = onlineState === "离线" ? "未检测" : alertType.includes("麦克风") ? "麦克风异常" : "正常";
       const speaker = onlineState === "离线" ? "未检测" : alertType.includes("扬声器") ? "扬声器异常" : "正常";
@@ -313,8 +313,37 @@
     return { "在线": 0, "异常": 1, "离线": 2 }[item.onlineState] ?? 1;
   }
 
-  function statusIcon(label, value, symbol) {
-    return `<span class="ops-status-item ${statusTone(value)}" title="${escapeHtml(label)}：${escapeHtml(value)}"><span aria-hidden="true">${symbol}</span><span>${escapeHtml(value)}</span></span>`;
+  function conciseStatus(value) {
+    if (value === "正常") return "正常";
+    if (value === "离线") return "离线";
+    if (value === "未检测") return "未检测";
+    return String(value).includes("异常") ? "异常" : value;
+  }
+
+  function statusText(label, value) {
+    const conciseValue = conciseStatus(value);
+    return `<span class="ops-status-item ${statusTone(value)}" title="${escapeHtml(label)}：${escapeHtml(value)}"><span>${escapeHtml(label)}</span><strong>${escapeHtml(conciseValue)}</strong></span>`;
+  }
+
+  function audioStatus(item) {
+    const values = [item.microphone, item.speaker];
+    if (values.some((value) => statusTone(value) === "danger")) return "音频异常";
+    if (values.every((value) => value === "正常")) return "正常";
+    if (values.some((value) => value === "离线")) return "离线";
+    return "未检测";
+  }
+
+  function motorStatuses(item) {
+    const abnormalNumber = Number(String(item.motor).match(/(\d+)号/)?.[1] || 0);
+    const unavailable = ["离线", "未检测"].includes(item.motor);
+    return Array.from({ length: 15 }, (_, index) => ({
+      number: index + 1,
+      tone: unavailable ? "muted" : abnormalNumber === index + 1 ? "danger" : "ok",
+    }));
+  }
+
+  function renderMotorStatusGrid(item) {
+    return `<section class="ops-motor-detail"><div class="ops-motor-detail-head"><div><h3>电机状态</h3><span>1–15 号电机实时状态</span></div><div class="ops-motor-legend"><span class="ok">正常</span><span class="danger">异常</span>${["离线", "未检测"].includes(item.motor) ? `<span class="muted">未检测</span>` : ""}</div></div><div class="ops-motor-grid">${motorStatuses(item).map((motor) => `<span class="ops-motor-dot ${motor.tone}" title="${motor.number}号电机：${motor.tone === "danger" ? "异常" : motor.tone === "muted" ? "未检测" : "正常"}">${motor.number}</span>`).join("")}</div></section>`;
   }
 
   function videoSourceLabel(mode) {
@@ -447,11 +476,10 @@
           </div>
         </div>
         <div class="ops-status-row compact">
-          ${statusIcon("联网", item.network, "⌁")}
-          ${statusIcon("麦克风", item.microphone, "♩")}
-          ${statusIcon("扬声器", item.speaker, "◖")}
-          ${statusIcon("电机", item.motor, "⚙")}
-          ${statusIcon("推流", item.stream, "↗")}
+          ${statusText("网络", item.network)}
+          ${statusText("推流", item.stream)}
+          ${statusText("音频", audioStatus(item))}
+          ${statusText("电机", item.motor)}
         </div>
       </button>`;
   }
@@ -493,7 +521,7 @@
 
   function renderAlerts(list) {
     return `<aside class="ops-panel ops-alert-panel">
-      <div class="ops-section-head"><div><h3>告警列表${opsHandoffMark("告警列表字段与规则", "字段包括机器人ID、机器人名称、版本、异常情况、持续时长和时间。按发生时间倒序展示；名称过长单行省略，异常情况必须完整换行。时间可选近1、3、6、12、24小时，只影响告警列表和异常告警指标。点击告警直接打开设备详情，不改变当前筛选与视图。", "info")}</h3><span>${list.length} 条告警</span></div><span class="ops-priority-note">按时间排序</span></div>
+      <div class="ops-section-head"><div><h3>告警列表${opsHandoffMark("告警列表字段与规则", "字段包括机器人ID、机器人名称、版本、异常情况、持续时长和时间，ID显示为RBT加数字序号。按发生时间倒序展示，界面文案为按时间排序；名称过长单行省略，异常情况必须完整换行。时间可选近1、3、6、12、24小时，只影响告警列表和异常告警指标。点击告警直接打开设备详情，不改变当前筛选与视图。", "info")}</h3><span>${list.length} 条告警</span></div><span class="ops-priority-note">按时间排序</span></div>
       <div class="ops-alert-columns"><span>机器人ID</span><span>机器人名称</span><span>版本</span><span>异常情况</span><span>持续时长</span><label class="ops-alert-time-filter"><span>时间 ·</span><select aria-label="告警时间" onchange="robotOps.setFilter('hours', this.value)">${filterOptions.hours.map((value) => `<option value="${value}" ${value === state.filters.hours ? "selected" : ""}>近${value}小时</option>`).join("")}</select></label></div>
       <div class="ops-alert-list">
         ${list.length ? list.map((item) => {
@@ -511,11 +539,15 @@
     const recentAlerts = allAlerts().filter((entry) => entry.deviceId === item.id).slice(0, 6);
     return `<div class="ops-drawer-backdrop" onclick="robotOps.closeDevice()">
       <aside class="ops-drawer" role="dialog" aria-modal="true" aria-label="机器人运维详情" onclick="event.stopPropagation()">
-        <div class="ops-drawer-head"><div><span>直播间数据详情${opsHandoffMark("设备详情字段", "详情展示机器人版本、在线状态、机器人模式、开播状态、画面来源、直播时长、当前脚本、当前阶段、联网、麦克风、扬声器、电机、推流和最后上报时间；最近告警固定展示该机器人最新6条，不继承页面筛选。", "new")}</span><h2>${escapeHtml(item.name)} <small>${escapeHtml(item.id)}</small></h2></div><button type="button" aria-label="关闭" onclick="robotOps.closeDevice()">×</button></div>
+        <div class="ops-drawer-head"><div><span>直播间数据详情${opsHandoffMark("设备详情字段", "详情ID显示为RBT加数字序号。字段按基础信息、直播运行、内容执行、设备连接四组紧凑展示，避免状态平铺；电机状态独立展示1至15号圆形编号，正常为绿色、异常为红色、未检测为灰色；最近告警固定展示该机器人最新6条，不继承页面筛选。", "new")}</span><h2>${escapeHtml(item.name)} <small>${escapeHtml(displayRobotId(item.id))}</small></h2></div><button type="button" aria-label="关闭" onclick="robotOps.closeDevice()">×</button></div>
         <div class="ops-detail-avatar-block"><div class="ops-detail-avatar scene-${escapeHtml(item.scene)}">${robotAvatarArtwork(item.id)}</div><span>静态画面</span></div>
-        <div class="ops-detail-grid">
-          ${detailItem("机器人版本", item.version)}${detailItem("在线状态", item.onlineState, true)}${detailItem("机器人模式", item.mode)}${detailItem("开播状态", item.broadcastState, true)}${detailItem("画面来源", broadcastSourceLabel(item))}${detailItem("直播时长", item.duration)}${detailItem("当前脚本", item.script)}${detailItem("当前阶段", item.stage)}${detailItem("联网状态", item.network, true)}${detailItem("麦克风", item.microphone, true)}${detailItem("扬声器", item.speaker, true)}${detailItem("电机状态", item.motor, true)}${detailItem("推流状态", item.stream, true)}${detailItem("最后上报", item.lastReportedAt)}
+        <div class="ops-detail-overview">
+          ${detailGroup("基础信息", "机器人身份与最近上报", [detailItem("机器人版本", item.version), detailItem("机器人模式", item.mode), detailItem("最后上报", item.lastReportedAt)], "detail-compact")}
+          ${detailGroup("直播运行", "当前场次运行状态", [detailItem("开播状态", item.broadcastState, true), detailItem("画面来源", broadcastSourceLabel(item)), detailItem("直播时长", item.duration)], "detail-compact")}
+          ${detailGroup("内容执行", "当前脚本进度", [detailItem("当前脚本", item.script), detailItem("当前阶段", item.stage)], "detail-content")}
+          ${detailGroup("设备连接", "在线、网络、推流与音频", [detailItem("在线状态", item.onlineState, true), detailItem("联网状态", item.network, true), detailItem("推流状态", item.stream, true), detailItem("麦克风", item.microphone, true), detailItem("扬声器", item.speaker, true)], "detail-status")}
         </div>
+        ${renderMotorStatusGrid(item)}
         <section class="ops-detail-alerts"><div class="ops-section-head"><div><h3>最近告警记录</h3><span>${recentAlerts.length} 条</span></div></div>
           ${recentAlerts.length ? recentAlerts.map((entry) => `<div class="ops-detail-alert-row"><span class="ops-presence warning"></span><div><strong>${escapeHtml(entry.message)}</strong><small>${escapeHtml(entry.type)} · ${formatClock(alertTimestamp(entry), true)}</small></div></div>`).join("") : emptyState("暂无历史告警", "该设备当前运行正常。", true)}
         </section><div class="ops-detail-actions"><button class="ops-button ops-enter-live" type="button" onclick="robotOps.enterLiveRoom('${escapeHtml(item.id)}')">查看直播数据大屏${opsHandoffMark("运维详情跳转规则", "查看直播数据大屏始终可用：直播中展示实时数据，未开播展示历史记录，没有历史记录时展示空数据；查看脚本进入当前机器人的脚本执行管理，未配置脚本时展示空状态。", "info")}</button><button class="ops-button ghost ops-view-script" type="button" onclick="robotOps.viewScript('${escapeHtml(item.id)}')">查看脚本</button></div>
@@ -524,7 +556,11 @@
   }
 
   function detailItem(label, value, colored = false) {
-    return `<div><span>${label}</span>${colored ? statusPill(value) : `<strong>${escapeHtml(value)}</strong>`}</div>`;
+    return `<div class="ops-detail-field"><span>${label}</span>${colored ? statusPill(value) : `<strong title="${escapeHtml(value)}">${escapeHtml(value)}</strong>`}</div>`;
+  }
+
+  function detailGroup(title, description, items, kind = "detail-compact") {
+    return `<section class="ops-detail-group"><div class="ops-detail-group-title"><h3>${escapeHtml(title)}</h3><span>${escapeHtml(description)}</span></div><div class="ops-detail-group-grid ${kind}">${items.join("")}</div></section>`;
   }
 
   function emptyState(title, description, compact = false) {
@@ -540,9 +576,9 @@
     const alertList = visibleAlerts();
     const highlightedIds = state.selectedDeviceId ? new Set([state.selectedDeviceId]) : new Set();
     const monitorPanel = `<article class="ops-panel ops-monitor-panel">
-          <div class="ops-section-head ops-monitor-head"><div class="ops-monitor-heading"><div><h3>直播画面监控${opsHandoffMark("画面范围与视图规则", "开播状态可选全部、直播中、录播中和未开播，与顶部设备范围取交集，只影响画面、列表和全屏监控。三种视图使用同一结果集，按在线、异常、离线排序，切换后保留筛选条件。", "new")}</h3><span>${deviceList.length} 个直播间${opsHandoffMark("机器人画面卡片字段", "画面卡片展示机器人ID、名称、版本、模式、开播状态、画面来源、在线状态、联网、麦克风、扬声器、电机、推流、当前告警、直播时长、当前脚本和当前阶段；桌面端左侧展示直播画面，右侧展示直播时长、当前脚本和当前阶段，窄屏自动改为上下布局；当前版本模式固定显示直播。未开播时显示00:00:00、未运行、等待开播。", "info")}</span></div>${renderBroadcastFilter(scopeDeviceList)}</div><div class="ops-view-switch"><button class="${state.viewMode === "grid" ? "active" : ""}" type="button" onclick="robotOps.setView('grid')">▦ 画面视图</button><button class="${state.viewMode === "list" ? "active" : ""}" type="button" onclick="robotOps.setView('list')">☷ 列表视图</button><button class="${state.fullscreen ? "active" : ""}" type="button" onclick="robotOps.toggleFullscreen(${state.fullscreen ? "false" : "true"})">${state.fullscreen ? "退出全屏" : "全屏监控"}</button></div></div>
+          <div class="ops-section-head ops-monitor-head"><div class="ops-monitor-heading"><div><h3>直播画面监控${opsHandoffMark("画面范围与视图规则", "开播状态可选全部、直播中、录播中和未开播，与顶部设备范围取交集，只影响画面、列表和全屏监控。三种视图使用同一结果集，按在线、异常、离线排序，切换后保留筛选条件。", "new")}</h3><span>${deviceList.length} 个直播间${opsHandoffMark("机器人画面卡片字段", "画面卡片ID和告警列表ID统一显示为RBT加数字序号。卡片展示名称、版本、直播模式、开播状态、画面来源、在线状态、当前告警、直播时长、当前脚本和当前阶段；底部以纯文字展示网络、推流、音频和电机的正常、异常、离线或未检测状态，不展示状态图标。桌面宽屏画面区每行5个卡片，左侧直播画面保持3:2，右侧展示直播时长、当前脚本和当前阶段；窄屏按3列、2列、1列响应式收缩。当前版本模式固定为直播；未开播显示00:00:00、未运行、等待开播。", "info")}</span></div>${renderBroadcastFilter(scopeDeviceList)}</div><div class="ops-view-switch"><button class="${state.viewMode === "grid" ? "active" : ""}" type="button" onclick="robotOps.setView('grid')">▦ 画面视图</button><button class="${state.viewMode === "list" ? "active" : ""}" type="button" onclick="robotOps.setView('list')">☷ 列表视图</button><button class="${state.fullscreen ? "active" : ""}" type="button" onclick="robotOps.toggleFullscreen(${state.fullscreen ? "false" : "true"})">${state.fullscreen ? "退出全屏" : "全屏监控"}</button></div></div>
           <div class="ops-monitor-content">${state.viewMode === "grid" ? renderDeviceGrid(monitorList, highlightedIds) : renderDeviceTable(monitorList, highlightedIds)}</div>
-          <div class="ops-status-legend"><span>${statusIcon("联网", "正常", "⌁")} 联网</span><span>${statusIcon("麦克风", "正常", "♩")} 麦克风</span><span>${statusIcon("扬声器", "正常", "◖")} 扬声器</span><span>${statusIcon("电机", "正常", "⚙")} 电机</span><span>${statusIcon("推流", "正常", "↗")} 推流</span><span><i class="ops-presence ok"></i>在线</span><span><i class="ops-presence muted"></i>离线</span><span><i class="ops-presence warning"></i>告警</span></div>
+          <div class="ops-status-legend"><span>卡片状态：网络 / 推流 / 音频 / 电机</span><span class="ops-status-item ok">正常</span><span class="ops-status-item danger">异常</span><span class="ops-status-item muted">未检测</span><span><i class="ops-presence ok"></i>在线</span><span><i class="ops-presence muted"></i>离线</span><span><i class="ops-presence warning"></i>告警</span></div>
         </article>`;
     if (state.fullscreen) {
       return `<div class="robot-ops-page fullscreen-monitor">
