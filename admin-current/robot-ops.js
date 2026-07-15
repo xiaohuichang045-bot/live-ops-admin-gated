@@ -349,6 +349,10 @@
     return String(deviceId || "-").match(/(\d+)$/)?.[1] || String(deviceId || "-");
   }
 
+  function displayRobotId(deviceId) {
+    return `RBT${robotSequenceId(deviceId)}`;
+  }
+
   function channelFilterOptions() {
     const channels = global.phase2State?.channels || [];
     const currentChannelId = global.phase2State?.snapshot().currentChannelId || "channel-weishi";
@@ -425,18 +429,22 @@
     const tone = broadcastTone(item);
     return `
       <button class="ops-device-card ${item.onlineState === "离线" ? "offline" : ""} broadcast-${tone} ${highlighted ? "highlighted" : ""}" data-ops-device="${escapeHtml(item.id)}" type="button" onclick="robotOps.openDevice('${escapeHtml(item.id)}')">
-        <div class="ops-device-head"><span class="ops-presence ${statusTone(item.onlineState)}"></span><strong>${escapeHtml(item.id)}</strong><span class="ops-online-badge ${statusTone(item.onlineState)}">${escapeHtml(item.onlineState)}</span></div>
-        <div class="ops-feed scene-${escapeHtml(item.scene)}">
-          ${robotArtwork(item.version, item.id)}
-          <span class="ops-feed-live state-${tone}">${item.onlineState === "离线" ? "画面中断" : item.broadcastState === "直播中" ? "LIVE" : item.broadcastState === "录播中" ? "REC" : "未开播"}</span>
-          ${item.currentAlert ? `<span class="ops-alert-badge">${escapeHtml(item.currentAlert)}</span>` : ""}
-          <span class="ops-source-badge mode-${escapeHtml(item.videoSource || "live")}">${broadcastSourceLabel(item)}</span>
-        </div>
-        <div class="ops-device-meta"><strong>${escapeHtml(item.name)}</strong><span>${escapeHtml(item.version)} · ${escapeHtml(item.mode)}</span></div>
-        <div class="ops-live-runtime">
-          <span><em>直播时长</em><strong>${escapeHtml(item.duration)}</strong></span>
-          <span><em>当前脚本</em><strong title="${escapeHtml(item.script)}">${escapeHtml(item.script)}</strong></span>
-          <span><em>当前阶段</em><strong title="${escapeHtml(item.stage)}">${escapeHtml(item.stage)}</strong></span>
+        <div class="ops-device-head"><span class="ops-presence ${statusTone(item.onlineState)}"></span><strong>${escapeHtml(displayRobotId(item.id))}</strong><span class="ops-online-badge ${statusTone(item.onlineState)}">${escapeHtml(item.onlineState)}</span></div>
+        <div class="ops-device-main">
+          <div class="ops-feed scene-${escapeHtml(item.scene)}">
+            ${robotArtwork(item.version, item.id)}
+            <span class="ops-feed-live state-${tone}">${item.onlineState === "离线" ? "画面中断" : item.broadcastState === "直播中" ? "LIVE" : item.broadcastState === "录播中" ? "REC" : "未开播"}</span>
+            ${item.currentAlert ? `<span class="ops-alert-badge">${escapeHtml(item.currentAlert)}</span>` : ""}
+            <span class="ops-feed-identity"><strong>${escapeHtml(item.name)}</strong><small>${escapeHtml(item.version)} · ${escapeHtml(item.mode)}</small></span>
+            <span class="ops-source-badge mode-${escapeHtml(item.videoSource || "live")}">${broadcastSourceLabel(item)}</span>
+          </div>
+          <div class="ops-device-info">
+            <div class="ops-live-runtime">
+              <span><em>直播时长</em><strong>${escapeHtml(item.duration)}</strong></span>
+              <span><em>当前脚本</em><strong title="${escapeHtml(item.script)}">${escapeHtml(item.script)}</strong></span>
+              <span><em>当前阶段</em><strong title="${escapeHtml(item.stage)}">${escapeHtml(item.stage)}</strong></span>
+            </div>
+          </div>
         </div>
         <div class="ops-status-row compact">
           ${statusIcon("联网", item.network, "⌁")}
@@ -485,12 +493,12 @@
 
   function renderAlerts(list) {
     return `<aside class="ops-panel ops-alert-panel">
-      <div class="ops-section-head"><div><h3>告警列表${opsHandoffMark("告警列表字段与规则", "字段包括机器人ID、机器人名称、版本、异常情况、持续时长和时间。按发生时间倒序展示；名称过长单行省略，异常情况必须完整换行。时间可选近1、3、6、12、24小时，只影响告警列表和异常告警指标。点击告警直接打开设备详情，不改变当前筛选与视图。", "info")}</h3><span>${list.length} 条告警</span></div><span class="ops-priority-note">最新在前</span></div>
+      <div class="ops-section-head"><div><h3>告警列表${opsHandoffMark("告警列表字段与规则", "字段包括机器人ID、机器人名称、版本、异常情况、持续时长和时间。按发生时间倒序展示；名称过长单行省略，异常情况必须完整换行。时间可选近1、3、6、12、24小时，只影响告警列表和异常告警指标。点击告警直接打开设备详情，不改变当前筛选与视图。", "info")}</h3><span>${list.length} 条告警</span></div><span class="ops-priority-note">按时间排序</span></div>
       <div class="ops-alert-columns"><span>机器人ID</span><span>机器人名称</span><span>版本</span><span>异常情况</span><span>持续时长</span><label class="ops-alert-time-filter"><span>时间 ·</span><select aria-label="告警时间" onchange="robotOps.setFilter('hours', this.value)">${filterOptions.hours.map((value) => `<option value="${value}" ${value === state.filters.hours ? "selected" : ""}>近${value}小时</option>`).join("")}</select></label></div>
       <div class="ops-alert-list">
         ${list.length ? list.map((item) => {
           const linkedDevice = deviceById(item.deviceId);
-          return `<button class="ops-alert-row" type="button" onclick="robotOps.locateAlert('${escapeHtml(item.id)}')"><span title="${escapeHtml(item.deviceId)}"><i></i>${escapeHtml(robotSequenceId(item.deviceId))}</span><span class="ops-alert-device-name" title="${escapeHtml(linkedDevice?.name || "-")}">${escapeHtml(linkedDevice?.name || "-")}</span><span>${escapeHtml(linkedDevice?.version || "-")}</span><strong title="${escapeHtml(item.message)}">${escapeHtml(item.message)}</strong><span class="ops-alert-duration">${formatDuration(alertDurationSeconds(item))}</span><time>${formatClock(alertTimestamp(item))}</time></button>`;
+          return `<button class="ops-alert-row" type="button" onclick="robotOps.locateAlert('${escapeHtml(item.id)}')"><span title="${escapeHtml(item.deviceId)}"><i></i>${escapeHtml(displayRobotId(item.deviceId))}</span><span class="ops-alert-device-name" title="${escapeHtml(linkedDevice?.name || "-")}">${escapeHtml(linkedDevice?.name || "-")}</span><span>${escapeHtml(linkedDevice?.version || "-")}</span><strong title="${escapeHtml(item.message)}">${escapeHtml(item.message)}</strong><span class="ops-alert-duration">${formatDuration(alertDurationSeconds(item))}</span><time>${formatClock(alertTimestamp(item))}</time></button>`;
         }).join("") : emptyState("暂无告警", "当前设备范围和时间条件下没有告警记录。", true)}
       </div>
     </aside>`;
@@ -532,7 +540,7 @@
     const alertList = visibleAlerts();
     const highlightedIds = state.selectedDeviceId ? new Set([state.selectedDeviceId]) : new Set();
     const monitorPanel = `<article class="ops-panel ops-monitor-panel">
-          <div class="ops-section-head ops-monitor-head"><div class="ops-monitor-heading"><div><h3>直播画面监控${opsHandoffMark("画面范围与视图规则", "开播状态可选全部、直播中、录播中和未开播，与顶部设备范围取交集，只影响画面、列表和全屏监控。三种视图使用同一结果集，按在线、异常、离线排序，切换后保留筛选条件。", "new")}</h3><span>${deviceList.length} 个直播间${opsHandoffMark("机器人画面卡片字段", "画面卡片展示机器人ID、名称、版本、模式、开播状态、画面来源、在线状态、联网、麦克风、扬声器、电机、推流、当前告警、直播时长、当前脚本和当前阶段；当前版本模式固定显示直播。未开播时显示00:00:00、未运行、等待开播。", "info")}</span></div>${renderBroadcastFilter(scopeDeviceList)}</div><div class="ops-view-switch"><button class="${state.viewMode === "grid" ? "active" : ""}" type="button" onclick="robotOps.setView('grid')">▦ 画面视图</button><button class="${state.viewMode === "list" ? "active" : ""}" type="button" onclick="robotOps.setView('list')">☷ 列表视图</button><button class="${state.fullscreen ? "active" : ""}" type="button" onclick="robotOps.toggleFullscreen(${state.fullscreen ? "false" : "true"})">${state.fullscreen ? "退出全屏" : "全屏监控"}</button></div></div>
+          <div class="ops-section-head ops-monitor-head"><div class="ops-monitor-heading"><div><h3>直播画面监控${opsHandoffMark("画面范围与视图规则", "开播状态可选全部、直播中、录播中和未开播，与顶部设备范围取交集，只影响画面、列表和全屏监控。三种视图使用同一结果集，按在线、异常、离线排序，切换后保留筛选条件。", "new")}</h3><span>${deviceList.length} 个直播间${opsHandoffMark("机器人画面卡片字段", "画面卡片展示机器人ID、名称、版本、模式、开播状态、画面来源、在线状态、联网、麦克风、扬声器、电机、推流、当前告警、直播时长、当前脚本和当前阶段；桌面端左侧展示直播画面，右侧展示直播时长、当前脚本和当前阶段，窄屏自动改为上下布局；当前版本模式固定显示直播。未开播时显示00:00:00、未运行、等待开播。", "info")}</span></div>${renderBroadcastFilter(scopeDeviceList)}</div><div class="ops-view-switch"><button class="${state.viewMode === "grid" ? "active" : ""}" type="button" onclick="robotOps.setView('grid')">▦ 画面视图</button><button class="${state.viewMode === "list" ? "active" : ""}" type="button" onclick="robotOps.setView('list')">☷ 列表视图</button><button class="${state.fullscreen ? "active" : ""}" type="button" onclick="robotOps.toggleFullscreen(${state.fullscreen ? "false" : "true"})">${state.fullscreen ? "退出全屏" : "全屏监控"}</button></div></div>
           <div class="ops-monitor-content">${state.viewMode === "grid" ? renderDeviceGrid(monitorList, highlightedIds) : renderDeviceTable(monitorList, highlightedIds)}</div>
           <div class="ops-status-legend"><span>${statusIcon("联网", "正常", "⌁")} 联网</span><span>${statusIcon("麦克风", "正常", "♩")} 麦克风</span><span>${statusIcon("扬声器", "正常", "◖")} 扬声器</span><span>${statusIcon("电机", "正常", "⚙")} 电机</span><span>${statusIcon("推流", "正常", "↗")} 推流</span><span><i class="ops-presence ok"></i>在线</span><span><i class="ops-presence muted"></i>离线</span><span><i class="ops-presence warning"></i>告警</span></div>
         </article>`;
