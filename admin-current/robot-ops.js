@@ -8,6 +8,11 @@
     hours: [1, 3, 6, 12, 24],
   };
 
+  const opsAssets = {
+    idleLandscape: "./assets/robot-ops/humanoid-host-landscape.jpg",
+    portrait: "./assets/robot-ops/humanoid-host-portrait.jpg",
+  };
+
   const seedDevices = [
     device("DT-LIVE-001", "星栖", "Z版", "直播", "在线", "正常", "正常", "正常", "正常", "云紫", "2026-07-10 18:59:48"),
     device("DT-LIVE-002", "知鹤", "R版", "直播", "在线", "正常", "正常", "正常", "正常", "海蓝", "2026-07-10 18:59:42"),
@@ -110,6 +115,11 @@
 
   function opsHandoffMark(title, body, tone = "new") {
     return typeof global.handoffMark === "function" ? global.handoffMark(title, body, tone) : "";
+  }
+
+  function opsIcon(name, label = "", className = "ops-icon") {
+    const accessibility = label ? `role="img" aria-label="${escapeHtml(label)}"` : 'aria-hidden="true"';
+    return `<i class="${escapeHtml(className)}" style="--ops-icon: url('./assets/icons/${escapeHtml(name)}.svg')" ${accessibility}></i>`;
   }
 
   function deviceById(id) {
@@ -274,12 +284,6 @@
     rerender();
   }
 
-  function refreshNow() {
-    state.lastRefresh = new Date();
-    rerender();
-    if (typeof global.toast === "function") global.toast("运维数据已刷新");
-  }
-
   function applyRealtimeUpdate() {
     state.lastRefresh = new Date();
     if (global.location.hash === "#robot-ops") rerender();
@@ -320,9 +324,9 @@
     return String(value).includes("异常") ? "异常" : value;
   }
 
-  function statusText(label, value) {
+  function statusText(label, value, icon) {
     const conciseValue = conciseStatus(value);
-    return `<span class="ops-status-item ${statusTone(value)}" title="${escapeHtml(label)}：${escapeHtml(value)}"><span>${escapeHtml(label)}</span><strong>${escapeHtml(conciseValue)}</strong></span>`;
+    return `<span class="ops-status-item ${statusTone(value)}" title="${escapeHtml(label)}：${escapeHtml(value)}" aria-label="${escapeHtml(label)}：${escapeHtml(value)}">${opsIcon(icon, "", "ops-status-icon")}<strong>${escapeHtml(conciseValue)}</strong></span>`;
   }
 
   function audioStatus(item) {
@@ -343,7 +347,7 @@
   }
 
   function renderMotorStatusGrid(item) {
-    return `<section class="ops-motor-detail"><div class="ops-motor-detail-head"><div><h3>电机状态</h3><span>1–15 号电机实时状态</span></div><div class="ops-motor-legend"><span class="ok">正常</span><span class="danger">异常</span>${["离线", "未检测"].includes(item.motor) ? `<span class="muted">未检测</span>` : ""}</div></div><div class="ops-motor-grid">${motorStatuses(item).map((motor) => `<span class="ops-motor-dot ${motor.tone}" title="${motor.number}号电机：${motor.tone === "danger" ? "异常" : motor.tone === "muted" ? "未检测" : "正常"}">${motor.number}</span>`).join("")}</div></section>`;
+    return `<section class="ops-motor-detail"><div class="ops-motor-detail-head"><div><h3>${opsIcon("cog")}电机状态</h3></div><div class="ops-motor-legend"><span class="ok">正常</span><span class="danger">异常</span>${["离线", "未检测"].includes(item.motor) ? `<span class="muted">未检测</span>` : ""}</div></div><div class="ops-motor-grid">${motorStatuses(item).map((motor) => `<span class="ops-motor-dot ${motor.tone}" title="${motor.number}号电机：${motor.tone === "danger" ? "异常" : motor.tone === "muted" ? "未检测" : "正常"}">${motor.number}</span>`).join("")}</div></section>`;
   }
 
   function videoSourceLabel(mode) {
@@ -408,45 +412,38 @@
     return `<span class="ops-channel-readonly">当前渠道${scopeMark}：${escapeHtml(channelName)}</span>`;
   }
 
-  function renderTopControls(showExit = false) {
-    return `<div class="ops-refresh"><div class="ops-scope-controls">${renderChannelScope()}${renderDeviceScope()}</div><div class="ops-refresh-actions"><span>实时订阅 · 最近更新 ${formatClock(state.lastRefresh, true)}</span><button class="ops-button" type="button" onclick="robotOps.refreshNow()">立即刷新${opsHandoffMark("运维刷新规则", "页面进入后建立实时订阅，设备、画面、告警、直播时长、当前脚本、当前阶段和开播状态随服务端事件持续更新；页面不再提供自动刷新开关，也不使用定时轮询。立即刷新作为人工兜底，执行后保留渠道、设备范围、告警时间、视图模式及全屏状态；失败时保留原数据并提示。", "info")}</button>${showExit ? `<button class="ops-button ghost" type="button" onclick="robotOps.toggleFullscreen(false)">退出全屏</button>` : ""}</div></div>`;
+  function renderTopControls() {
+    return `<div class="ops-top-controls"><div class="ops-scope-controls">${renderChannelScope()}${renderDeviceScope()}</div></div>`;
   }
 
-  function renderMetrics(deviceList, alertList) {
-    const online = deviceList.filter((item) => item.onlineState === "在线").length;
+  function renderOpsHeader(title) {
+    const layoutMark = opsHandoffMark("运维页品牌头部", "页面顶部左侧将DeepTouch品牌字标与页面标题组成一个标题组，中间使用竖线分隔；右侧紧凑展示当前渠道和设备范围。标题区使用独立底板与下方指标区分区。1220px及以下时筛选位于第二层。页面运行数据保持实时订阅，不展示任何刷新相关控件。", "info");
+    return `<header class="ops-hero"><div class="ops-title-block"><div class="ops-brand"><img src="./assets/deeptouch-wordmark.jpg" alt="DeepTouch" /></div><span class="ops-title-divider" aria-hidden="true"></span><h1>${escapeHtml(title)}${layoutMark}</h1></div>${renderTopControls()}</header>`;
+  }
+
+  function renderMetrics(deviceList) {
+    const online = deviceList.filter((item) => item.onlineState !== "离线").length;
     const offline = deviceList.filter((item) => item.onlineState === "离线").length;
-    const abnormal = deviceList.filter((item) => item.onlineState === "异常").length;
     const live = deviceList.filter((item) => item.broadcastState === "直播中").length;
     const recorded = deviceList.filter((item) => item.broadcastState === "录播中").length;
-    const versions = filterOptions.version.slice(1).map((version) => ({ version, count: deviceList.filter((item) => item.version === version).length }));
-    const total = Math.max(deviceList.length, 1);
+    const abnormal = deviceList.filter((item) => item.onlineState !== "离线" && deviceMatchesScope(item, "当前异常（全部）")).length;
     return `
       <section class="ops-metrics" aria-label="核心指标">
-        ${metricCard("总设备数", deviceList.length, "当前渠道设备", "violet", "▣", opsHandoffMark("核心指标口径", "总设备、在线、离线、当前直播、录播中和版本分布均按当前渠道全部直播机器人计算，不随设备范围、开播状态或告警时间变化；异常告警按设备范围对应的告警类型与告警时间计算。所有指标卡仅展示，不可点击筛选。", "info"))}
-        ${metricCard("在线设备", online, `在线率 ${deviceList.length ? ((online / deviceList.length) * 100).toFixed(1) : "0.0"}%`, "green", "⌁")}
-        ${metricCard("离线设备", offline, `异常设备 ${abnormal} 台`, "gray", "◉")}
-        ${metricCard("当前直播", live, `占比 ${deviceList.length ? ((live / deviceList.length) * 100).toFixed(1) : "0.0"}%`, "blue", "▶")}
-        ${metricCard("录播中", recorded, `占比 ${deviceList.length ? ((recorded / deviceList.length) * 100).toFixed(1) : "0.0"}%`, "amber", "◫")}
-        ${metricCard("异常告警", alertList.length, `${selectedAlertType() === "全部类型" ? "全部类型" : selectedAlertType()} · 近 ${state.filters.hours} 小时`, "red", "!")}
-        <article class="ops-panel ops-version-card">
-          <div class="ops-panel-title">机器人版本分布</div>
-          <div class="ops-version-body">
-            <div class="ops-donut" style="--r:${versions[0].count / total * 360}deg;--z:${(versions[0].count + versions[1].count) / total * 360}deg" aria-label="版本分布图"></div>
-            <div class="ops-version-list">
-              ${versions.map((item, index) => `<div class="ops-version-row"><span class="ops-version-dot v${index}"></span><span>${item.version}</span><span class="ops-version-track"><i style="width:${(item.count / total) * 100}%"></i></span><strong>${item.count}</strong><small>${deviceList.length ? ((item.count / deviceList.length) * 100).toFixed(1) : "0.0"}%</small></div>`).join("")}
-            </div>
-          </div>
-        </article>
+        ${metricCard("总设备数", deviceList.length, "violet", "bot", opsHandoffMark("核心指标口径", "总设备、在线、离线、直播中、录播中和异常设备均按当前渠道全部直播机器人计算，不随设备范围、开播状态或告警时间变化。在线设备包含仍保持连接但存在健康异常的设备，因此在线与离线之和等于总设备；异常设备用于表达当前健康异常。所有指标仅展示，不可点击筛选。", "info"))}
+        ${metricCard("在线设备", online, "green", "wifi")}
+        ${metricCard("离线设备", offline, "gray", "wifi-off")}
+        ${metricCard("直播中", live, "blue", "radio-tower")}
+        ${metricCard("录播中", recorded, "amber", "video")}
+        ${metricCard("异常设备", abnormal, "red", "triangle-alert")}
       </section>`;
   }
 
-  function metricCard(title, value, note, tone, icon, annotation = "") {
-    return `<article class="ops-panel ops-metric ${tone}"><div class="ops-metric-icon">${icon}</div><div><span>${title}${annotation}</span><strong>${value}</strong><small>${note}</small></div></article>`;
+  function metricCard(title, value, tone, icon, annotation = "") {
+    return `<article class="ops-panel ops-metric ${tone}"><div class="ops-metric-icon"><i class="ops-metric-glyph" style="--ops-icon: url('./assets/icons/${icon}.svg')" aria-hidden="true"></i></div><div><span>${title}${annotation}</span><strong>${value}</strong></div></article>`;
   }
 
   function renderBroadcastFilter(list) {
-    const counts = Object.fromEntries(filterOptions.broadcast.map((value) => [value, value === "全部" ? list.length : list.filter((item) => item.broadcastState === value).length]));
-    return `<div class="ops-broadcast-filter" role="group" aria-label="直播画面状态">${filterOptions.broadcast.map((value) => `<button class="${state.filters.broadcast === value ? "active" : ""}" type="button" onclick="robotOps.setFilter('broadcast', '${value}')"><span>${value}</span><strong>${counts[value]}</strong></button>`).join("")}</div>`;
+    return `<div class="ops-broadcast-filter" role="group" aria-label="直播画面状态">${filterOptions.broadcast.map((value) => `<button class="${state.filters.broadcast === value ? "active" : ""}" type="button" aria-pressed="${state.filters.broadcast === value}" onclick="robotOps.setFilter('broadcast', '${value}')"><span>${value}</span></button>`).join("")}</div>`;
   }
 
   function renderDeviceGrid(list, highlightedIds) {
@@ -456,32 +453,39 @@
 
   function renderDeviceCard(item, highlighted) {
     const tone = broadcastTone(item);
+    const conciseAria = `查看 ${displayRobotId(item.id)} ${item.name}详情，${item.onlineState}，${item.broadcastState}`;
     return `
-      <button class="ops-device-card ${item.onlineState === "离线" ? "offline" : ""} broadcast-${tone} ${highlighted ? "highlighted" : ""}" data-ops-device="${escapeHtml(item.id)}" type="button" onclick="robotOps.openDevice('${escapeHtml(item.id)}')">
-        <div class="ops-device-head"><span class="ops-presence ${statusTone(item.onlineState)}"></span><strong>${escapeHtml(displayRobotId(item.id))}</strong><span class="ops-online-badge ${statusTone(item.onlineState)}">${escapeHtml(item.onlineState)}</span></div>
+      <button class="ops-device-card ${item.onlineState === "离线" ? "offline" : ""} broadcast-${tone} ${highlighted ? "highlighted" : ""}" data-ops-device="${escapeHtml(item.id)}" type="button" aria-label="${escapeHtml(conciseAria)}" onclick="robotOps.openDevice('${escapeHtml(item.id)}')">
+        <div class="ops-device-head"><strong>${escapeHtml(displayRobotId(item.id))}</strong><span class="ops-online-badge ${statusTone(item.onlineState)}">${escapeHtml(item.onlineState)}</span></div>
         <div class="ops-device-main">
           <div class="ops-feed scene-${escapeHtml(item.scene)}">
-            ${robotArtwork(item.version, item.id)}
+            ${renderFeedVisual(item)}
             <span class="ops-feed-live state-${tone}">${item.onlineState === "离线" ? "画面中断" : item.broadcastState === "直播中" ? "LIVE" : item.broadcastState === "录播中" ? "REC" : "未开播"}</span>
-            ${item.currentAlert ? `<span class="ops-alert-badge">${escapeHtml(item.currentAlert)}</span>` : ""}
-            <span class="ops-feed-identity"><strong>${escapeHtml(item.name)}</strong><small>${escapeHtml(item.version)} · ${escapeHtml(item.mode)}</small></span>
-            <span class="ops-source-badge mode-${escapeHtml(item.videoSource || "live")}">${broadcastSourceLabel(item)}</span>
+            ${item.currentAlert && !(item.onlineState === "离线" && item.currentAlert === "设备离线") ? `<span class="ops-alert-badge">${escapeHtml(item.currentAlert)}</span>` : ""}
+            <span class="ops-feed-identity"><strong>${escapeHtml(item.name)}</strong><small>${escapeHtml(item.version)}</small></span>
           </div>
           <div class="ops-device-info">
-            <div class="ops-live-runtime">
-              <span><em>直播时长</em><strong>${escapeHtml(item.duration)}</strong></span>
-              <span><em>当前脚本</em><strong title="${escapeHtml(item.script)}">${escapeHtml(item.script)}</strong></span>
-              <span><em>当前阶段</em><strong title="${escapeHtml(item.stage)}">${escapeHtml(item.stage)}</strong></span>
-            </div>
+            ${renderRuntime(item)}
           </div>
         </div>
         <div class="ops-status-row compact">
-          ${statusText("网络", item.network)}
-          ${statusText("推流", item.stream)}
-          ${statusText("音频", audioStatus(item))}
-          ${statusText("电机", item.motor)}
+          ${statusText("网络", item.network, "wifi")}
+          ${statusText("推流", item.stream, "radio-tower")}
+          ${statusText("音频", audioStatus(item), "mic")}
+          ${statusText("电机", item.motor, "cog")}
         </div>
       </button>`;
+  }
+
+  function renderFeedVisual(item) {
+    if (item.broadcastState !== "未开播" || item.onlineState === "离线") return robotArtwork(item.version, item.id);
+    const source = item.avatarUrl || item.liveRoomImageUrl || opsAssets.idleLandscape;
+    return `<img class="ops-idle-portrait" src="${escapeHtml(source)}" alt="" onerror="this.onerror=null;this.src='${opsAssets.idleLandscape}'" />`;
+  }
+
+  function renderRuntime(item) {
+    if (item.broadcastState === "未开播") return `<div class="ops-live-runtime idle"><span><em>运行任务</em><strong>暂无运行任务</strong></span></div>`;
+    return `<div class="ops-live-runtime"><span><em>直播时长</em><strong>${escapeHtml(item.duration)}</strong></span><span><em>当前脚本</em><strong title="${escapeHtml(item.script)}">${escapeHtml(item.script)}</strong></span><span><em>当前阶段</em><strong title="${escapeHtml(item.stage)}">${escapeHtml(item.stage)}</strong></span></div>`;
   }
 
   function robotArtwork(version, id) {
@@ -497,21 +501,10 @@
     </svg>`;
   }
 
-  function robotAvatarArtwork(id) {
-    const suffix = escapeHtml(id.slice(-2));
-    return `<svg class="ops-robot-avatar" viewBox="0 0 120 120" aria-hidden="true">
-      <defs><linearGradient id="avatar-${suffix}" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff"/><stop offset="1" stop-color="#8999b6"/></linearGradient></defs>
-      <circle cx="60" cy="60" r="49" fill="rgb(5 13 27 / 48%)"/>
-      <rect x="29" y="26" width="62" height="66" rx="27" fill="url(#avatar-${suffix})"/>
-      <rect x="37" y="39" width="46" height="36" rx="16" fill="#08111f"/>
-      <circle cx="50" cy="57" r="5" fill="#70f3ff"/><circle cx="70" cy="57" r="5" fill="#70f3ff"/>
-    </svg>`;
-  }
-
   function renderDeviceTable(list, highlightedIds) {
     if (!list.length) return emptyState("当前筛选条件下没有匹配的机器人", "请调整筛选条件后重试。");
-    return `<div class="ops-table-wrap"><table class="ops-table"><thead><tr><th>机器人ID / 名称</th><th>版本</th><th>模式</th><th>开播状态</th><th>画面来源</th><th>在线</th><th>联网</th><th>麦克风</th><th>扬声器</th><th>电机</th><th>推流</th><th>当前告警</th><th>最后上报</th><th>操作</th></tr></thead><tbody>
-      ${list.map((item) => `<tr class="${highlightedIds.has(item.id) ? "highlighted" : ""}"><td><strong>${escapeHtml(item.id)}</strong><small>${escapeHtml(item.name)}</small></td><td>${escapeHtml(item.version)}</td><td>${escapeHtml(item.mode)}</td><td>${statusPill(item.broadcastState)}</td><td>${broadcastSourceLabel(item)}</td><td>${statusPill(item.onlineState)}</td><td>${statusPill(item.network)}</td><td>${statusPill(item.microphone)}</td><td>${statusPill(item.speaker)}</td><td>${statusPill(item.motor)}</td><td>${statusPill(item.stream)}</td><td>${item.currentAlert ? `<span class="ops-alert-text">${escapeHtml(item.currentAlert)}</span>` : "—"}</td><td>${escapeHtml(item.lastReportedAt)}</td><td><button class="ops-link" type="button" onclick="robotOps.openDevice('${escapeHtml(item.id)}')">查看详情</button></td></tr>`).join("")}
+    return `<div class="ops-table-wrap"><table class="ops-table"><thead><tr><th>机器人ID / 名称</th><th>版本</th><th>开播状态</th><th>画面来源</th><th>连接状态</th><th>网络状态</th><th>麦克风</th><th>扬声器</th><th>电机</th><th>推流</th><th>当前告警</th><th>最后上报</th><th>操作</th></tr></thead><tbody>
+      ${list.map((item) => `<tr class="${highlightedIds.has(item.id) ? "highlighted" : ""}"><td><strong>${escapeHtml(displayRobotId(item.id))}</strong><small>${escapeHtml(item.name)}</small></td><td>${escapeHtml(item.version)}</td><td>${statusPill(item.broadcastState)}</td><td>${broadcastSourceLabel(item)}</td><td>${statusPill(item.onlineState)}</td><td>${statusPill(item.network)}</td><td>${statusPill(item.microphone)}</td><td>${statusPill(item.speaker)}</td><td>${statusPill(item.motor)}</td><td>${statusPill(item.stream)}</td><td>${item.currentAlert ? `<span class="ops-alert-text">${escapeHtml(item.currentAlert)}</span>` : "—"}</td><td>${escapeHtml(item.lastReportedAt)}</td><td><button class="ops-link" type="button" onclick="robotOps.openDevice('${escapeHtml(item.id)}')">查看详情</button></td></tr>`).join("")}
     </tbody></table></div>`;
   }
 
@@ -521,12 +514,12 @@
 
   function renderAlerts(list) {
     return `<aside class="ops-panel ops-alert-panel">
-      <div class="ops-section-head"><div><h3>告警列表${opsHandoffMark("告警列表字段与规则", "字段包括机器人ID、机器人名称、版本、异常情况、持续时长和时间，ID显示为RBT加数字序号。按发生时间倒序展示，界面文案为按时间排序；名称过长单行省略，异常情况必须完整换行。时间可选近1、3、6、12、24小时，只影响告警列表和异常告警指标。点击告警直接打开设备详情，不改变当前筛选与视图。", "info")}</h3><span>${list.length} 条告警</span></div><span class="ops-priority-note">按时间排序</span></div>
-      <div class="ops-alert-columns"><span>机器人ID</span><span>机器人名称</span><span>版本</span><span>异常情况</span><span>持续时长</span><label class="ops-alert-time-filter"><span>时间 ·</span><select aria-label="告警时间" onchange="robotOps.setFilter('hours', this.value)">${filterOptions.hours.map((value) => `<option value="${value}" ${value === state.filters.hours ? "selected" : ""}>近${value}小时</option>`).join("")}</select></label></div>
+      <div class="ops-section-head"><div><h3>${opsIcon("triangle-alert")}告警列表${opsHandoffMark("告警列表字段与规则", "字段包括机器人ID、机器人名称、异常情况、持续时长和时间，ID显示为RBT加数字序号。按发生时间倒序展示；名称过长单行省略，异常情况必须完整换行。时间可选近1、3、6、12、24小时。点击告警直接打开设备详情，不改变当前筛选与视图。", "info")}</h3><span>${list.length} 条</span></div></div>
+      <div class="ops-alert-columns"><span>机器人ID</span><span>机器人名称</span><span>异常情况</span><span>持续时长</span><label class="ops-alert-time-filter"><select aria-label="告警时间" onchange="robotOps.setFilter('hours', this.value)">${filterOptions.hours.map((value) => `<option value="${value}" ${value === state.filters.hours ? "selected" : ""}>近${value}小时</option>`).join("")}</select></label></div>
       <div class="ops-alert-list">
         ${list.length ? list.map((item) => {
           const linkedDevice = deviceById(item.deviceId);
-          return `<button class="ops-alert-row" type="button" onclick="robotOps.locateAlert('${escapeHtml(item.id)}')"><span title="${escapeHtml(item.deviceId)}"><i></i>${escapeHtml(displayRobotId(item.deviceId))}</span><span class="ops-alert-device-name" title="${escapeHtml(linkedDevice?.name || "-")}">${escapeHtml(linkedDevice?.name || "-")}</span><span>${escapeHtml(linkedDevice?.version || "-")}</span><strong title="${escapeHtml(item.message)}">${escapeHtml(item.message)}</strong><span class="ops-alert-duration">${formatDuration(alertDurationSeconds(item))}</span><time>${formatClock(alertTimestamp(item))}</time></button>`;
+          return `<button class="ops-alert-row severity-${escapeHtml(item.severity)}" type="button" onclick="robotOps.locateAlert('${escapeHtml(item.id)}')"><span title="${escapeHtml(item.deviceId)}">${escapeHtml(displayRobotId(item.deviceId))}</span><span class="ops-alert-device-name" title="${escapeHtml(linkedDevice?.name || "-")}">${escapeHtml(linkedDevice?.name || "-")}</span><strong title="${escapeHtml(item.message)}">${escapeHtml(item.message)}</strong><span class="ops-alert-duration">${formatDuration(alertDurationSeconds(item))}</span><time>${formatClock(alertTimestamp(item))}</time></button>`;
         }).join("") : emptyState("暂无告警", "当前设备范围和时间条件下没有告警记录。", true)}
       </div>
     </aside>`;
@@ -539,18 +532,28 @@
     const recentAlerts = allAlerts().filter((entry) => entry.deviceId === item.id).slice(0, 6);
     return `<div class="ops-drawer-backdrop" onclick="robotOps.closeDevice()">
       <aside class="ops-drawer" role="dialog" aria-modal="true" aria-label="机器人运维详情" onclick="event.stopPropagation()">
-        <div class="ops-drawer-head"><div><span>直播间数据详情${opsHandoffMark("设备详情字段", "详情ID显示为RBT加数字序号。字段按基础信息、直播运行、脚本执行、设备连接四组紧凑展示，避免状态平铺；电机状态独立展示1至15号圆形编号，正常为绿色、异常为红色、未检测为灰色；最近告警固定展示该机器人最新6条，不继承页面筛选。", "new")}</span><h2>${escapeHtml(item.name)} <small>${escapeHtml(displayRobotId(item.id))}</small></h2></div><button type="button" aria-label="关闭" onclick="robotOps.closeDevice()">×</button></div>
-        <div class="ops-detail-avatar-block"><div class="ops-detail-avatar scene-${escapeHtml(item.scene)}">${robotAvatarArtwork(item.id)}</div><span>静态画面</span></div>
+        <div class="ops-drawer-head"><strong>${opsIcon("monitor-cog")}机器人详情${opsHandoffMark("设备详情字段", "详情ID显示为RBT加数字序号。顶部概览区左侧按3:4比例展示头像，右侧合并机器人名称、基础信息和直播运行；下方按脚本执行、设备连接分组展示。电机状态独立展示1至15号圆形编号；最近告警固定展示该机器人最新6条，不继承页面筛选。", "new")}</strong><button type="button" aria-label="关闭" onclick="robotOps.closeDevice()">${opsIcon("x")}</button></div>
+        <section class="ops-detail-summary">
+          <div class="ops-detail-avatar"><img class="ops-detail-portrait" src="${escapeHtml(item.portraitUrl || item.avatarUrl || opsAssets.portrait)}" alt="${escapeHtml(item.name)}头像" onerror="this.onerror=null;this.src='${opsAssets.portrait}'" /></div>
+          <div class="ops-detail-summary-content">
+            <div class="ops-detail-summary-identity"><div><h2>${escapeHtml(item.name)}</h2><small>${escapeHtml(displayRobotId(item.id))}</small></div>${statusPill(item.onlineState)}</div>
+            <div class="ops-detail-summary-grid">
+              ${detailItem("机器人版本", item.version)}
+              ${detailItem("最后上报", item.lastReportedAt)}
+              ${detailItem("开播状态", item.broadcastState, true)}
+              ${detailItem("画面来源", broadcastSourceLabel(item))}
+              ${detailItem("直播时长", item.duration)}
+            </div>
+          </div>
+        </section>
         <div class="ops-detail-overview">
-          ${detailGroup("基础信息", "机器人身份与最近上报", [detailItem("机器人版本", item.version), detailItem("机器人模式", item.mode), detailItem("最后上报", item.lastReportedAt)], "detail-compact")}
-          ${detailGroup("直播运行", "当前场次运行状态", [detailItem("开播状态", item.broadcastState, true), detailItem("画面来源", broadcastSourceLabel(item)), detailItem("直播时长", item.duration)], "detail-compact")}
-          ${detailGroup("脚本执行", "当前脚本进度", [detailItem("当前脚本", item.script), detailItem("当前阶段", item.stage)], "detail-content")}
-          ${detailGroup("设备连接", "在线、网络、推流与音频", [detailItem("在线状态", item.onlineState, true), detailItem("联网状态", item.network, true), detailItem("推流状态", item.stream, true), detailItem("麦克风", item.microphone, true), detailItem("扬声器", item.speaker, true)], "detail-status")}
+          ${detailGroup("脚本执行", [detailItem("当前脚本", item.script), detailItem("当前阶段", item.stage)], "detail-content", "scroll-text")}
+          ${detailGroup("设备连接", [detailItem("网络", item.network, true), detailItem("推流", item.stream, true), detailItem("麦克风", item.microphone, true), detailItem("扬声器", item.speaker, true)], "detail-status", "cpu")}
         </div>
         ${renderMotorStatusGrid(item)}
-        <section class="ops-detail-alerts"><div class="ops-section-head"><div><h3>最近告警记录</h3><span>${recentAlerts.length} 条</span></div></div>
-          ${recentAlerts.length ? recentAlerts.map((entry) => `<div class="ops-detail-alert-row"><span class="ops-presence warning"></span><div><strong>${escapeHtml(entry.message)}</strong><small>${escapeHtml(entry.type)} · ${formatClock(alertTimestamp(entry), true)}</small></div></div>`).join("") : emptyState("暂无历史告警", "该设备当前运行正常。", true)}
-        </section><div class="ops-detail-actions"><button class="ops-button ops-enter-live" type="button" onclick="robotOps.enterLiveRoom('${escapeHtml(item.id)}')">查看直播数据大屏${opsHandoffMark("运维详情跳转规则", "查看直播数据大屏始终可用：直播中展示实时数据，未开播展示历史记录，没有历史记录时展示空数据；查看脚本进入当前机器人的脚本执行管理，未配置脚本时展示空状态。", "info")}</button><button class="ops-button ghost ops-view-script" type="button" onclick="robotOps.viewScript('${escapeHtml(item.id)}')">查看脚本</button></div>
+        <section class="ops-detail-alerts"><div class="ops-section-head"><div><h3>${opsIcon("triangle-alert")}最近告警</h3></div></div>
+          ${recentAlerts.length ? recentAlerts.map((entry) => `<div class="ops-detail-alert-row"><span class="ops-presence warning"></span><div><strong>${escapeHtml(entry.message)}</strong><small>${escapeHtml(entry.type)} · ${formatClock(alertTimestamp(entry), true)}</small></div></div>`).join("") : emptyState("暂无告警记录", "", true)}
+        </section><div class="ops-detail-actions"><button class="ops-button ops-enter-live" type="button" onclick="robotOps.enterLiveRoom('${escapeHtml(item.id)}')">${opsIcon("monitor-cog")}查看直播数据大屏${opsHandoffMark("运维详情跳转规则", "查看直播数据大屏始终可用：直播中展示实时数据，未开播展示历史记录，没有历史记录时展示空数据；查看脚本进入当前机器人的脚本执行管理，未配置脚本时展示空状态。", "info")}</button><button class="ops-button ghost ops-view-script" type="button" onclick="robotOps.viewScript('${escapeHtml(item.id)}')">${opsIcon("scroll-text")}查看脚本</button></div>
       </aside>
     </div>`;
   }
@@ -559,44 +562,36 @@
     return `<div class="ops-detail-field"><span>${label}</span>${colored ? statusPill(value) : `<strong title="${escapeHtml(value)}">${escapeHtml(value)}</strong>`}</div>`;
   }
 
-  function detailGroup(title, description, items, kind = "detail-compact") {
-    return `<section class="ops-detail-group"><div class="ops-detail-group-title"><h3>${escapeHtml(title)}</h3><span>${escapeHtml(description)}</span></div><div class="ops-detail-group-grid ${kind}">${items.join("")}</div></section>`;
+  function detailGroup(title, items, kind = "detail-compact", icon = "cpu") {
+    return `<section class="ops-detail-group"><div class="ops-detail-group-title"><h3>${opsIcon(icon)}${escapeHtml(title)}</h3></div><div class="ops-detail-group-grid ${kind}">${items.join("")}</div></section>`;
   }
 
   function emptyState(title, description, compact = false) {
-    return `<div class="ops-empty ${compact ? "compact" : ""}"><span>◇</span><strong>${escapeHtml(title)}</strong><small>${escapeHtml(description)}</small></div>`;
+    return `<div class="ops-empty ${compact ? "compact" : ""}">${opsIcon("monitor-cog", "", "ops-empty-icon")}<strong>${escapeHtml(title)}</strong>${description ? `<small>${escapeHtml(description)}</small>` : ""}</div>`;
   }
 
   function render() {
     const metricDeviceList = baseDevices();
-    const metricAlertList = baseAlerts();
     const scopeDeviceList = scopedDevices();
     const deviceList = visibleDevices();
     const monitorList = deviceList;
     const alertList = visibleAlerts();
     const highlightedIds = state.selectedDeviceId ? new Set([state.selectedDeviceId]) : new Set();
     const monitorPanel = `<article class="ops-panel ops-monitor-panel">
-          <div class="ops-section-head ops-monitor-head"><div class="ops-monitor-heading"><div><h3>直播画面监控${opsHandoffMark("画面范围与视图规则", "开播状态可选全部、直播中、录播中和未开播，与顶部设备范围取交集，只影响画面、列表和全屏监控。大屏采用左侧画面区、右侧告警列表；中等屏幕采用顶部指标、中部可滚动画面区、底部固定高度告警区；窄屏改为自然纵向流。各区间画面与告警不得重叠。三种视图使用同一结果集，切换后保留筛选条件。", "new")}</h3><span>${deviceList.length} 个直播间${opsHandoffMark("机器人画面卡片字段", "画面卡片ID和告警列表ID统一显示为RBT加数字序号。卡片展示名称、版本、直播模式、开播状态、画面来源、在线状态、当前告警、直播时长、当前脚本和当前阶段；底部以纯文字展示网络、推流、音频和电机的正常、异常、离线或未检测状态，不展示状态图标。桌面宽屏画面区每行5个卡片，左侧直播画面保持3:2，右侧展示直播时长、当前脚本和当前阶段；窄屏按3列、2列、1列响应式收缩。当前版本模式固定为直播；未开播显示00:00:00、未运行、等待开播。", "info")}</span></div>${renderBroadcastFilter(scopeDeviceList)}</div><div class="ops-view-switch"><button class="${state.viewMode === "grid" ? "active" : ""}" type="button" onclick="robotOps.setView('grid')">▦ 画面视图</button><button class="${state.viewMode === "list" ? "active" : ""}" type="button" onclick="robotOps.setView('list')">☷ 列表视图</button><button class="${state.fullscreen ? "active" : ""}" type="button" onclick="robotOps.toggleFullscreen(${state.fullscreen ? "false" : "true"})">${state.fullscreen ? "退出全屏" : "全屏监控"}</button></div></div>
+          <div class="ops-section-head ops-monitor-head"><div class="ops-monitor-heading"><div><h3>直播画面监控${opsHandoffMark("画面范围与视图规则", "开播状态可选全部、直播中、录播中和未开播，与顶部设备范围取交集，只影响画面、列表和全屏监控。画面、列表与全屏使用同一结果集，切换后保留筛选条件。", "new")}${opsHandoffMark("机器人画面卡片字段", "画面卡片展示RBT编号、名称、版本、唯一画面状态、在线状态、当前具体告警、运行信息以及网络、推流、音频和电机四类健康图标。未开播且设备未离线时优先展示头像，没有头像时使用统一占位图；未开播只展示暂无运行任务。", "info")}</h3></div>${renderBroadcastFilter(scopeDeviceList)}</div><div class="ops-view-switch"><button class="${state.viewMode === "grid" ? "active" : ""}" type="button" onclick="robotOps.setView('grid')">${opsIcon("layout-grid")}画面视图</button><button class="${state.viewMode === "list" ? "active" : ""}" type="button" onclick="robotOps.setView('list')">${opsIcon("list")}列表视图</button><button class="${state.fullscreen ? "active" : ""}" type="button" onclick="robotOps.toggleFullscreen(${state.fullscreen ? "false" : "true"})">${opsIcon("maximize-2")}${state.fullscreen ? "退出全屏" : "全屏监控"}</button></div></div>
           <div class="ops-monitor-content">${state.viewMode === "grid" ? renderDeviceGrid(monitorList, highlightedIds) : renderDeviceTable(monitorList, highlightedIds)}</div>
-          <div class="ops-status-legend"><span>卡片状态：网络 / 推流 / 音频 / 电机</span><span class="ops-status-item ok">正常</span><span class="ops-status-item danger">异常</span><span class="ops-status-item muted">未检测</span><span><i class="ops-presence ok"></i>在线</span><span><i class="ops-presence muted"></i>离线</span><span><i class="ops-presence warning"></i>告警</span></div>
         </article>`;
     if (state.fullscreen) {
       return `<div class="robot-ops-page fullscreen-monitor">
-        <header class="ops-hero">
-          <div><span class="ops-kicker">FULLSCREEN MONITOR</span><h1>直播间画面墙</h1><p>直播间按当前屏幕自适应排布，设备范围保持有效</p></div>
-          ${renderTopControls(true)}
-        </header>
+        ${renderOpsHeader("直播间画面墙")}
         <section class="ops-monitor-layout only-monitor">${monitorPanel}</section>
         ${renderDrawer()}
       </div>`;
     }
     return `<div class="robot-ops-page ops-fixed-layout">
       <section class="ops-fixed-top">
-        <header class="ops-hero">
-          <div><span class="ops-kicker">ROBOT LIVE OPERATIONS</span><h1>机器人直播运维监控</h1><p>集中查看直播机器人画面、设备状态与告警记录</p></div>
-          ${renderTopControls()}
-        </header>
-        ${renderMetrics(metricDeviceList, metricAlertList)}
+        ${renderOpsHeader("机器人直播运维监控")}
+        ${renderMetrics(metricDeviceList)}
       </section>
       <section class="ops-fixed-middle">
         <section class="ops-monitor-layout">
@@ -608,7 +603,7 @@
     </div>`;
   }
 
-  const api = { render, setFilter, setView, toggleFullscreen, refreshNow, openDevice, closeDevice, locateAlert, enterLiveRoom, viewScript };
+  const api = { render, setFilter, setView, toggleFullscreen, openDevice, closeDevice, locateAlert, enterLiveRoom, viewScript };
   global.robotOps = api;
   global.renderRobotOpsPage = render;
   global.addEventListener("phase2-state-changed", applyRealtimeUpdate);
