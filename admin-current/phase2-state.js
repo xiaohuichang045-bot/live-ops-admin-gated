@@ -107,9 +107,13 @@
 
   function refresh(message) {
     save();
-    global.dispatchEvent(new CustomEvent("phase2-state-changed", { detail: snapshot() }));
     if (message && typeof global.toast === "function") global.toast(message);
+    if (global.location?.hash === "#robot-ops") {
+      global.dispatchEvent(new CustomEvent("phase2-state-changed", { detail: snapshot() }));
+      return;
+    }
     if (typeof global.renderApp === "function") global.renderApp();
+    else global.dispatchEvent(new CustomEvent("phase2-state-changed", { detail: snapshot() }));
   }
 
   function currentChannel() {
@@ -197,6 +201,7 @@
       message,
       at: new Date().toISOString(),
       resolved: false,
+      resolvedAt: "",
     };
     state.alerts.unshift(alert);
     return alert;
@@ -235,12 +240,16 @@
 
   function switchToLive(roomId, operator = "运营人员") {
     const target = videoState(roomId);
+    const resolvedAt = new Date().toISOString();
     target.mode = "live";
     target.recordingId = "";
     target.faultType = "";
     target.recovering = false;
     state.alerts.forEach((item) => {
-      if (item.roomId === roomId && !item.resolved) item.resolved = true;
+      if (item.roomId === roomId && !item.resolved) {
+        item.resolved = true;
+        item.resolvedAt = resolvedAt;
+      }
     });
     addLog(roomId, "恢复实时画面", "已切回实时直播画面", operator);
     refresh("已恢复实时画面");

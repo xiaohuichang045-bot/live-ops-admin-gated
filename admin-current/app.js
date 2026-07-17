@@ -190,16 +190,16 @@ const phase2FeatureRows = [
   ["机器人脚本", "新增", "导入与启用规则", "导入整体校验失败不落库；新增和导入默认不启用；同一机器人同一时间仅一个启用脚本。", "上一版本缺少同名、覆盖、启用冲突和默认启用边界。", true],
   ["机器人运维", "新增", "直播机器人数据范围", "运维大屏仅展示有实体硬件且机器人类型为直播的设备；平台账号可切换渠道，客户账号固定当前渠道。", "上一版本机器人管理偏资料维护，没有独立运维值守范围。", true],
   ["机器人运维", "调整", "运维模式统一为直播", "当前版本只承接直播业务，画面卡片、设备列表和设备详情中的机器人模式统一显示为直播。", "上一版本运维模式的展示口径未统一。", true],
-  ["机器人运维", "新增", "设备范围筛选", "支持全部设备、当前异常，以及网络、电机、扬声器、麦克风、推流、系统等异常类型；筛选只作用于画面、列表和全屏监控。", "上一版本缺少按设备当前运行状态快速定位异常的能力。", true],
-  ["机器人运维", "新增", "告警时间筛选", "支持近1、3、6、12、24小时，默认近6小时；只作用于告警列表和异常告警指标，不改变设备监控范围。", "上一版本缺少当前状态与历史告警分离的时间口径。", true],
-  ["机器人运维", "新增", "开播状态筛选", "支持全部、直播中、录播中、未开播，并与设备范围取交集；结果同步作用于画面、列表和全屏监控。", "上一版本不能按直播运行状态筛选值守对象。", true],
-  ["机器人运维", "新增", "核心指标与统计口径", "展示设备总数、在线、离线、直播中、录播中、版本分布和异常告警；设备类指标按当前渠道统计，异常告警按告警类型与时间范围统计；指标使用连续数据带和专业线性图标，只展示名称与数值，不展示重复说明小字，且不可点击筛选。", "上一版本没有统一的运维总览及指标口径。", true],
-  ["机器人运维", "新增", "直播画面卡片字段", "卡片展示机器人ID、名称、版本、直播模式、开播状态、在线状态、当前告警、直播时长、当前脚本和当前阶段；画面左上角使用唯一固定状态位显示LIVE、REC、未开播或画面中断，不在右下角重复展示画面来源，细分画面来源保留在列表和详情；卡片底部以纯文字展示网络、推流、音频和电机状态；画面区不重复展示卡片状态图例，高度随内容收口，卡片较多时内部滚动；桌面宽屏画面区每行5个卡片，左侧直播画面保持3:2，右侧展示直播信息，较窄窗口按3列、2列、1列响应式收缩。", "上一版本没有面向值守场景的设备运行信息卡片。", true],
+  ["机器人运维", "新增", "设备范围筛选", "支持全部设备、当前异常，以及网络、电机、扬声器、麦克风、推流、系统等异常类型；当前异常按存在当前有效告警的机器人去重，筛选只作用于画面、列表和全屏监控。", "上一版本缺少按设备当前运行状态快速定位异常的能力。", true],
+  ["机器人运维", "新增", "告警时间筛选", "支持近1、3、6、12、24小时，默认近6小时；只作用于告警列表，不改变设备监控范围和顶部指标。", "上一版本缺少当前状态与历史告警分离的时间口径。", true],
+  ["机器人运维", "新增", "开播状态筛选", "支持全部、开播、未开播，并与设备范围取交集；结果同步作用于画面、列表和全屏监控。", "上一版本不能按开播状态筛选值守对象。", true],
+  ["机器人运维", "新增", "核心指标与统计口径", "顶部六项保持总设备、已连接、离线设备、直播中、录播中和当前异常；已连接与离线设备之和等于总设备，直播中只统计开播实时画面，录播中只统计开播人工录播或故障自动转录播，当前异常按当前有效告警机器人去重；指标只展示名称与数值且不可点击筛选。", "上一版本没有统一的运维总览及指标口径。", true],
+  ["机器人运维", "新增", "直播画面卡片字段", "卡片展示机器人ID、名称、版本、开播状态、运行状态、直播时长、当前脚本和当前阶段；开播实时画面显示LIVE，人工录播或故障自动转录播显示REC，离线开播仍显示REC并以离线身份状态体现连接异常，离线未开播显示离线，已连接未开播显示未开播；画面来源仅在列表和详情展示实时画面、人工录播、故障自动转录播、画面未开启。", "上一版本没有面向值守场景的设备运行信息卡片。", true],
   ["机器人运维", "新增", "画面/列表/全屏视图", "顶部使用品牌标题条，左侧由DeepTouch品牌字标、竖向分隔线和页面标题组成品牌标题组，右侧紧凑展示渠道与设备范围，1220px及以下筛选移到第二层；核心指标采用连续数据带，画面与告警作为左右工作区使用轻分隔线，仅直播卡片保留明确边界；三种视图使用同一筛选结果；宽度大于1220px时采用左侧画面区、右侧告警列表，1220px及以下改为自然纵向流；1221至1699px画面区每行3个卡片，1700px及以上每行5个；全屏只保留画面区已有的退出入口。", "上一版本没有面向多设备的画面墙、列表和全屏值守能力。", true],
-  ["机器人运维", "新增", "告警列表字段与排序", "告警展示机器人ID、名称、版本、异常情况、持续时长和发生时间，按发生时间倒序并在界面标注按时间排序；名称过长单行省略，异常情况完整换行。", "上一版本没有可供值守人员持续查看的设备告警列表。", true],
+  ["机器人运维", "新增", "告警列表字段与排序", "告警展示机器人ID、名称、异常情况和发生时间，按发生时间倒序并在界面标注按时间排序；名称过长单行省略，异常情况完整换行。", "上一版本没有可供值守人员持续查看的设备告警列表。", true],
   ["机器人运维", "新增", "告警点击联动", "点击任一告警直接打开对应设备详情，不改变当前设备范围、开播状态、告警时间和视图。", "上一版本告警与设备运行详情缺少直接联动。", true],
-  ["机器人运维", "新增", "设备详情与最近告警", "详情ID显示为RBT加数字序号；顶部概览区左侧按432:576的3:4比例展示头像，右侧合并机器人名称、基础信息和直播运行，下方仅按脚本执行、设备连接分组展示，减少无层级平铺和空间浪费；电机状态区独立展示1至15号圆形编号，正常为绿色、异常为红色、未检测为灰色；最近告警固定展示最近6条，不继承页面告警筛选。", "上一版本设备信息停留在配置字段，缺少分组后的完整运行状态、电机明细和告警上下文。", true],
-  ["机器人运维", "新增", "跨页处理入口", "设备详情支持进入当前机器人的直播数据大屏和脚本执行管理；直播中进入实时数据，未开播时展示历史记录或空数据，脚本入口只定位当前机器人。", "上一版本运维、直播控制和脚本执行入口相互割裂。", true],
+  ["机器人运维", "新增", "设备详情与最近告警", "详情ID显示为RBT加数字序号；顶部概览区左侧按432:576的3:4比例展示头像，右侧合并机器人名称、基础信息和直播运行，下方仅按脚本执行、设备连接分组展示，减少无层级平铺和空间浪费；电机状态区独立展示1至15号圆形编号，正常为绿色、异常为红色、未检测为灰色；最近告警固定展示最近6条，每条包含上报时间、异常情况和持续时长，不继承页面告警筛选。", "上一版本设备信息停留在配置字段，缺少分组后的完整运行状态、电机明细和告警上下文。", true],
+  ["机器人运维", "新增", "跨页处理入口", "设备详情支持进入当前机器人的直播数据大屏和脚本执行管理；开播时进入当前直播数据，未开播时展示历史记录或空数据，脚本入口只定位当前机器人。", "上一版本运维、直播控制和脚本执行入口相互割裂。", true],
   ["机器人运维", "新增", "实时订阅", "页面进入后建立实时订阅，设备、画面、告警和直播运行数据随服务端事件持续更新；页面不展示刷新时间、立即刷新或自动刷新开关，也不使用定时轮询。", "上一版本没有明确持续更新的数据机制。", true],
   ["渠道与资源", "新增", "三类数据归属", "统一区分渠道公共数据、机器人私有数据和平台下发资源。", "上一版本公共模板、机器人私有资源和平台资源边界较弱。", true],
   ["渠道与资源", "新增", "渠道级数据隔离", "大库默认展示当前渠道公共数据，机器人详情只展示当前机器人私有数据，跨渠道默认不可查看、引用或编辑。", "上一版本数据默认混在同一原型池。", true],
@@ -2458,27 +2458,86 @@ function navigate(pageKey) {
   renderApp();
 }
 
+const opsRobotIdAliases = Object.freeze({
+  "DT-LIVE-001": "162",
+  "DT-LIVE-002": "174",
+  "DT-LIVE-003": "142",
+  "DT-LIVE-006": "RBT002",
+  "DT-LIVE-007": "139",
+  "DT-LIVE-008": "140",
+  "DT-LIVE-009": "138",
+  "DT-LIVE-010": "109",
+  "DT-LIVE-011": "110",
+  "DT-LIVE-012": "137",
+});
+
+function normalizedOpsRobotName(value) {
+  return String(value || "")
+    .replaceAll("-", "")
+    .replaceAll("测试", "")
+    .replaceAll("AI", "")
+    .trim();
+}
+
+function robotForOpsDevice(deviceId, robotName) {
+  const directRobot = robots.find((item) => String(item.id) === String(deviceId));
+  if (directRobot) return directRobot;
+
+  const aliasedId = opsRobotIdAliases[String(deviceId)];
+  const aliasedRobot = aliasedId ? robots.find((item) => String(item.id) === aliasedId) : null;
+  if (aliasedRobot) return aliasedRobot;
+
+  const exactNameRobot = robots.find((item) => String(item.name || "").trim() === String(robotName || "").trim());
+  if (exactNameRobot) return exactNameRobot;
+
+  const normalizedName = normalizedOpsRobotName(robotName);
+  if (!normalizedName) return null;
+  const normalizedMatches = robots.filter((item) => normalizedOpsRobotName(item.name) === normalizedName);
+  return normalizedMatches.length === 1 ? normalizedMatches[0] : null;
+}
+
+function robotOpsScriptBindingFor(deviceId, robotName) {
+  const robot = robotForOpsDevice(deviceId, robotName);
+  const script = robot ? robotExecutingScript(robot) : null;
+  if (!script) return null;
+  const stageKey = script.stageKey || (script.type === "导览" ? "tour" : script.type === "剧目" ? "drama" : script.type === "活动" ? "activity" : script.anchorType || "commerce");
+  return {
+    name: script.name,
+    stage: stageOrders[stageKey]?.[0]?.name || "开场准备",
+  };
+}
+
 function openRobotScriptsFromOps(deviceId, robotName) {
-  const normalizedName = String(robotName || "").replaceAll("-", "").replaceAll("测试", "").replaceAll("AI", "").trim();
-  const robot = robots.find((item) => {
-    const candidate = String(item.name || "").replaceAll("-", "").replaceAll("测试", "").replaceAll("AI", "").trim();
-    return candidate === normalizedName || candidate.startsWith(normalizedName) || normalizedName.startsWith(candidate);
-  });
+  const robot = robotForOpsDevice(deviceId, robotName);
+  document.getElementById("modalRoot")?.replaceChildren();
   if (robot) {
     navigate("robots");
     openRobotEditor(robot.id, "scripts");
     return;
   }
+
+  navigate("robots");
   openModal(`
-    <div class="modal medium">
-      <div class="modal-header"><div class="modal-title">脚本执行管理：${escapeHtml(robotName || deviceId)}</div><button class="modal-close" type="button" onclick="closeModal()">×</button></div>
-      <div class="modal-body"><div class="empty-state">当前机器人暂无脚本配置</div></div>
-      <div class="modal-footer"><button class="btn" type="button" onclick="closeModal()">关闭</button></div>
+    <div class="modal full">
+      <div class="modal-header"><div class="modal-title">脚本管理：${escapeHtml(deviceId)} / ${escapeHtml(robotName || "未命名机器人")}</div><button class="modal-close" type="button" onclick="closeModal()">×</button></div>
+      <div class="modal-body">
+        <div class="robot-resource-layout robot-script-layout">
+          <div class="robot-resource-head"><strong>脚本清单：0个</strong></div>
+          <div class="table-wrap">
+            <table class="data-table compact-table">
+              <thead><tr><th>脚本ID</th><th>脚本名称</th><th>脚本类型</th><th>场景</th><th>阶段数</th><th>绑定表演</th><th>下发时间</th><th>执行</th><th>操作</th></tr></thead>
+              <tbody><tr><td colspan="9">当前机器人尚未建立脚本配置，暂无可展示的脚本。</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer"><button class="btn" type="button" onclick="closeModal()">返回机器人列表</button></div>
     </div>
   `);
 }
 
 window.openRobotScriptsFromOps = openRobotScriptsFromOps;
+window.robotOpsScriptBindingFor = robotOpsScriptBindingFor;
 
 function toggleSidebar() {
   document.getElementById("app").classList.toggle("sidebar-collapsed");
