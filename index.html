@@ -219,6 +219,9 @@
         }
 
         async function deriveKey(password, salt, iterations) {
+          if (!window.isSecureContext || !window.crypto?.subtle) {
+            throw new Error("browser_unsupported");
+          }
           const baseKey = await crypto.subtle.importKey(
             "raw",
             new TextEncoder().encode(password),
@@ -397,6 +400,27 @@
           await appendScripts(parsedDocument, urls);
         }
 
+        function cacheBundle(sessionKey, bundleText) {
+          try {
+            sessionStorage.setItem(sessionKey, bundleText);
+          } catch (error) {
+            // Some embedded or private browsers disable session storage. Caching is optional.
+          }
+        }
+
+        function gateErrorMessage(error) {
+          if (error?.message === "payload_unavailable") {
+            return "演示资源加载失败，请刷新后重试。";
+          }
+          if (error?.message === "browser_unsupported") {
+            return "当前浏览器不支持安全解锁，请使用最新版 Chrome、Edge 或 Safari 打开。";
+          }
+          if (error?.name === "OperationError") {
+            return "答案不对，再想想机器人直播最怕什么。";
+          }
+          return "演示后台打开失败，请刷新后重试。";
+        }
+
         async function unlockWith(password) {
           answerButtons.forEach((button) => {
             button.disabled = true;
@@ -406,15 +430,10 @@
 
           try {
             const { bundleText, sessionKey } = await decryptBundle(password);
-            sessionStorage.setItem(sessionKey, bundleText);
+            cacheBundle(sessionKey, bundleText);
             await hydrate(bundleText);
           } catch (error) {
-            message.textContent =
-              error.message === "payload_unavailable"
-                ? "演示资源加载失败，请刷新或重新下载演示包。"
-                : error.message === "browser_unsupported"
-                  ? "当前浏览器版本过旧，请换用新版 Chrome、Edge 或 Safari 打开。"
-                : "答案不对，再想想机器人直播最怕什么。";
+            message.textContent = gateErrorMessage(error);
             loading.hidden = true;
           } finally {
             answerButtons.forEach((button) => {
